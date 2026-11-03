@@ -3,7 +3,7 @@ import { ArrowDownLeft, ArrowUpRight, BarChart3, CalendarDays, ChevronRight, Cir
 import { Link } from 'react-router-dom'
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useFinance } from '../context/FinanceContext'
-import { formatShortDate } from '../lib/dates'
+import { compareTransactionsByOccurredAt, formatShortDate } from '../lib/dates'
 import { formatCurrency, formatSignedCurrency } from '../lib/money'
 import MetricCard from '../components/MetricCard'
 import AnimatedNumber from '../components/AnimatedNumber'
@@ -44,6 +44,7 @@ export default function OverviewPage() {
   const chartData = useMemo(() => buildCashflowData(transactions), [transactions])
   const topWallets = activeWallets.slice(0, 3)
   const firstName = state.profile.displayName.split(' ')[0]
+  const recentTransactions = useMemo(() => [...transactions].sort(compareTransactionsByOccurredAt).slice(-5).reverse(), [transactions])
 
   function editTransaction(transaction: Transaction): void {
     setSelectedTransaction(null)
@@ -92,7 +93,7 @@ export default function OverviewPage() {
       <section className="content-split">
         <div className="panel activity-panel">
           <div className="section-heading-row"><div><span className="section-kicker">Recent activity</span><h2>What moved lately</h2></div><Link to="/transactions" className="text-link">View history <ChevronRight size={16} /></Link></div>
-           <div className="transaction-list">{transactions.slice(0, 5).map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} compact onOpen={setSelectedTransaction} />)}</div>
+            <div className="transaction-list">{recentTransactions.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} compact onOpen={setSelectedTransaction} />)}</div>
         </div>
         <aside className="insight-card">
           <span className="insight-icon"><PenLine size={19} /></span>

@@ -1,3 +1,5 @@
+import type { Transaction } from '../types'
+
 export function toInputDate(value = new Date()): string {
   const date = new Date(value)
   const offset = date.getTimezoneOffset()
@@ -36,4 +38,12 @@ export function relativeLabel(value: string): string {
   if (difference === 1) return 'Yesterday'
   if (difference > 1 && difference < 7) return `${difference} days ago`
   return formatShortDate(value)
+}
+
+export function compareTransactionsByOccurredAt(left: Transaction, right: Transaction): number {
+  const occurredDifference = new Date(left.occurredAt).getTime() - new Date(right.occurredAt).getTime()
+  if (occurredDifference !== 0) return occurredDifference
+
+  const createdDifference = new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
+  return createdDifference !== 0 ? createdDifference : left.id.localeCompare(right.id)
 }

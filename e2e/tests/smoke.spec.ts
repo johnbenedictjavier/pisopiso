@@ -199,10 +199,12 @@ test('can record an expense through the shared movement flow', async ({ page }) 
   await dialog.getByRole('tab', { name: 'Expense' }).click()
   await dialog.getByLabel('Amount').fill('120.50')
   await dialog.getByLabel('Merchant').fill('Neighborhood bakery')
+  await dialog.getByLabel('Date').fill('2024-12-31')
   await dialog.getByRole('button', { name: 'Save expense' }).click()
 
   await expect(page.getByRole('status')).toContainText('Expense added.')
-  await expect(page.getByText('Neighborhood bakery')).toBeVisible()
+  await page.goto('/transactions')
+  await expect(page.locator('.transaction-list-full .transaction-row').first()).toContainText('Neighborhood bakery')
 })
 
 test('shows a useful empty state when filters have no results', async ({ page }) => {

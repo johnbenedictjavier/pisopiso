@@ -9,6 +9,7 @@ import TransactionPagination, { TRANSACTION_PAGE_SIZE } from '../components/Tran
 import AnimatedNumber from '../components/AnimatedNumber'
 import { useFinance } from '../context/FinanceContext'
 import { downloadTransactionsCsv } from '../lib/csv'
+import { compareTransactionsByOccurredAt } from '../lib/dates'
 import { formatCurrency } from '../lib/money'
 import { useShell } from '../layout/AppShell'
 import type { Transaction, TransactionType } from '../types'
@@ -26,13 +27,15 @@ export default function TransactionsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
   const [page, setPage] = useState(0)
 
-  const filteredTransactions = useMemo(() => transactions.filter((transaction) => {
-    const matchesType = filter === 'all' || transaction.type === filter
-    const matchesWallet = walletFilter === 'all' || transaction.walletId === walletFilter
-    const category = state.categories.find((item) => item.id === transaction.categoryId)
-    const text = `${transaction.merchant} ${transaction.note} ${category?.name ?? ''}`.toLowerCase()
-    return matchesType && matchesWallet && text.includes(query.toLowerCase())
-  }), [filter, query, state.categories, transactions, walletFilter])
+  const filteredTransactions = useMemo(() => transactions
+    .filter((transaction) => {
+      const matchesType = filter === 'all' || transaction.type === filter
+      const matchesWallet = walletFilter === 'all' || transaction.walletId === walletFilter
+      const category = state.categories.find((item) => item.id === transaction.categoryId)
+      const text = `${transaction.merchant} ${transaction.note} ${category?.name ?? ''}`.toLowerCase()
+      return matchesType && matchesWallet && text.includes(query.toLowerCase())
+    })
+    .sort(compareTransactionsByOccurredAt), [filter, query, state.categories, transactions, walletFilter])
 
   useEffect(() => {
     setPage(0)

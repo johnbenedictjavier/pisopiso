@@ -11,6 +11,7 @@ import TransactionRow from '../components/TransactionRow'
 import WalletCard from '../components/WalletCard'
 import WalletModal from '../components/WalletModal'
 import { useFinance } from '../context/FinanceContext'
+import { compareTransactionsByOccurredAt } from '../lib/dates'
 import { formatCurrency } from '../lib/money'
 import { useShell } from '../layout/AppShell'
 import { walletTypeLabels, type Transaction } from '../types'
@@ -27,7 +28,9 @@ export default function WalletDetailPage() {
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [page, setPage] = useState(0)
   const wallet = walletId ? getWallet(walletId) : undefined
-  const walletTransactions = useMemo(() => transactions.filter((transaction) => transaction.walletId === walletId), [transactions, walletId])
+  const walletTransactions = useMemo(() => transactions
+    .filter((transaction) => transaction.walletId === walletId)
+    .sort(compareTransactionsByOccurredAt), [transactions, walletId])
   const income = walletTransactions.filter((transaction) => transaction.type === 'income').reduce((sum, transaction) => sum + transaction.amountCents, 0)
   const expenses = walletTransactions.filter((transaction) => transaction.type === 'expense').reduce((sum, transaction) => sum + transaction.amountCents, 0)
 
