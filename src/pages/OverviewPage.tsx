@@ -6,6 +6,7 @@ import { useFinance } from '../context/FinanceContext'
 import { formatShortDate } from '../lib/dates'
 import { formatCurrency, formatSignedCurrency } from '../lib/money'
 import MetricCard from '../components/MetricCard'
+import AnimatedNumber from '../components/AnimatedNumber'
 import TransactionRow from '../components/TransactionRow'
 import TransactionDetailModal from '../components/TransactionDetailModal'
 import WalletCard from '../components/WalletCard'
@@ -52,8 +53,8 @@ export default function OverviewPage() {
       <section className="overview-grid">
         <article className="balance-card">
           <div className="balance-card-header"><span>Total balance</span><span className="balance-period"><CalendarDays size={14} /> All wallets</span></div>
-          <strong className="balance-value">{formatCurrency(totalBalanceCents)}</strong>
-           <div className="balance-card-footer"><span className="balance-change"><TrendingUp size={15} /> {formatSignedCurrency(monthNetCents)} this month</span><span className="balance-date">Updated just now</span></div>
+          <strong className="balance-value"><AnimatedNumber value={totalBalanceCents} format={(amount) => formatCurrency(Math.round(amount))} /></strong>
+           <div className="balance-card-footer"><span className="balance-change"><TrendingUp size={15} /> <AnimatedNumber value={monthNetCents} format={(amount) => formatSignedCurrency(Math.round(amount))} /> this month</span><span className="balance-date">Updated just now</span></div>
         </article>
         <article className="chart-card">
           <div className="card-heading-row"><div><span className="section-kicker">Cash flow</span><h2>Last 7 days</h2></div><span className="chart-legend"><i className="dot dot-income" /> Income <i className="dot dot-expenses" /> Expenses</span></div>
@@ -62,9 +63,9 @@ export default function OverviewPage() {
       </section>
 
       <section className="metric-grid">
-        <MetricCard label="Income this month" value={formatCurrency(monthIncomeCents)} note="Money that found its way in" icon={ArrowDownLeft} tone="sage" />
-        <MetricCard label="Spent this month" value={formatCurrency(monthExpensesCents)} note="Across all active wallets" icon={ArrowUpRight} tone="amber" />
-        <MetricCard label="Net movement" value={formatSignedCurrency(monthNetCents)} note={monthNetCents >= 0 ? 'You are moving in the right direction' : 'A little more out than in'} icon={CircleDollarSign} tone="blue" />
+        <MetricCard label="Income this month" value={monthIncomeCents} note="Money that found its way in" icon={ArrowDownLeft} tone="sage" />
+        <MetricCard label="Spent this month" value={monthExpensesCents} note="Across all active wallets" icon={ArrowUpRight} tone="amber" />
+        <MetricCard label="Net movement" value={monthNetCents} formatValue={(amount) => formatSignedCurrency(Math.round(amount))} note={monthNetCents >= 0 ? 'You are moving in the right direction' : 'A little more out than in'} icon={CircleDollarSign} tone="blue" />
       </section>
 
       <section className="section-block">

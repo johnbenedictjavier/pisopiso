@@ -184,6 +184,7 @@ export default function AuthPage() {
       </section>
       <section className="auth-panel">
         <div className="auth-form-wrap">
+          <div className="auth-entry-badge"><span className="auth-entry-icon"><LockKeyhole size={17} /></span><div className="auth-entry-copy"><strong>{authMode === 'sign-in' ? 'Private return' : 'A private place for your money'}</strong><small>{authMode === 'sign-in' ? 'Your account is ready when you are.' : 'Set up your own calm money space.'}</small></div></div>
           <div className="auth-mode-tabs" role="tablist" aria-label="Account access">
             <button className={authMode === 'sign-up' ? 'auth-mode-active' : ''} type="button" role="tab" aria-selected={authMode === 'sign-up'} onClick={() => changeMode('sign-up')}>Create account</button>
             <button className={authMode === 'sign-in' ? 'auth-mode-active' : ''} type="button" role="tab" aria-selected={authMode === 'sign-in'} onClick={() => changeMode('sign-in')}>Sign in</button>

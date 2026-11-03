@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from './layout/AppShell'
 import { useAuthLock } from './context/AuthLockContext'
+import PageSkeleton from './components/PageSkeleton'
 
 const AuthPage = lazy(() => import('./pages/AuthPage'))
 const OverviewPage = lazy(() => import('./pages/OverviewPage'))
@@ -12,12 +13,7 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 
 function PageLoader() {
-  return (
-    <div className="page-loader" role="status" aria-live="polite">
-      <span className="loader-dot" />
-      <span>Loading your money space</span>
-    </div>
-  )
+  return <PageSkeleton />
 }
 
 function ProtectedAppShell() {

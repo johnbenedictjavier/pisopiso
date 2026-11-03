@@ -185,11 +185,25 @@ test('reorders wallets and preserves the first position', async ({ page }) => {
 
   const firstWallet = page.locator('.wallets-page-grid > article.wallet-card').first()
   await expect(firstWallet).toHaveAttribute('data-wallet-id', 'wallet-test-bpi')
-  await page.locator('[data-wallet-handle="wallet-test-bpi"]').press('ArrowDown')
+  const firstBox = await page.locator('[data-wallet-id="wallet-test-bpi"]').boundingBox()
+  const secondBox = await page.locator('[data-wallet-id="wallet-test-cash"]').boundingBox()
+  expect(firstBox).not.toBeNull()
+  expect(secondBox).not.toBeNull()
+  await page.mouse.move(firstBox!.x + firstBox!.width / 2, firstBox!.y + firstBox!.height / 2)
+  await page.mouse.down()
+  await page.waitForTimeout(1000)
+  await expect(page.locator('[data-wallet-id="wallet-test-bpi"]')).toHaveClass(/wallet-card-pressing/)
+  await page.waitForTimeout(2200)
+  await expect(page.locator('[data-wallet-id="wallet-test-bpi"]')).toHaveClass(/wallet-card-dragging/)
+  await page.mouse.move(secondBox!.x + secondBox!.width / 2, secondBox!.y + secondBox!.height / 2)
+  await page.mouse.up()
   await expect(page.locator('.wallets-page-grid > article.wallet-card').first()).toHaveAttribute('data-wallet-id', 'wallet-test-cash')
 
+  await page.locator('[data-wallet-id="wallet-test-cash"]').press('ArrowDown')
+  await expect(page.locator('.wallets-page-grid > article.wallet-card').first()).toHaveAttribute('data-wallet-id', 'wallet-test-bpi')
+
   await page.reload()
-  await expect(page.locator('.wallets-page-grid > article.wallet-card').first()).toHaveAttribute('data-wallet-id', 'wallet-test-cash')
+  await expect(page.locator('.wallets-page-grid > article.wallet-card').first()).toHaveAttribute('data-wallet-id', 'wallet-test-bpi')
 })
 
 test('keeps the primary flow usable on a narrow viewport', async ({ page }) => {
@@ -275,6 +289,7 @@ test('keeps the auth screens inside a mobile viewport', async ({ page }) => {
   await page.goto('/login')
   const fitsViewport = async () => page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight && document.body.scrollHeight <= window.innerHeight)
 
+  await expect(page.getByRole('heading', { name: 'Create your money space.' })).toBeVisible()
   expect(await fitsViewport()).toBe(true)
   await page.getByLabel('Email address').fill('mobile@example.com')
   await page.getByRole('button', { name: 'Continue' }).click()
@@ -286,6 +301,7 @@ test('keeps the auth screens inside a mobile viewport', async ({ page }) => {
   await page.evaluate(() => window.localStorage.clear())
   await page.setViewportSize({ width: 320, height: 568 })
   await page.goto('/login')
+  await expect(page.getByRole('heading', { name: 'Create your money space.' })).toBeVisible()
   expect(await fitsViewport()).toBe(true)
   await page.getByLabel('Email address').fill('short-screen@example.com')
   await page.getByRole('button', { name: 'Continue' }).click()

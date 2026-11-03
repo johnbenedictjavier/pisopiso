@@ -4,6 +4,7 @@ import EmptyState from '../components/EmptyState'
 import ConfirmModal from '../components/ConfirmModal'
 import TransactionRow from '../components/TransactionRow'
 import TransactionDetailModal from '../components/TransactionDetailModal'
+import AnimatedNumber from '../components/AnimatedNumber'
 import { useFinance } from '../context/FinanceContext'
 import { downloadTransactionsCsv } from '../lib/csv'
 import { formatCurrency } from '../lib/money'
@@ -49,7 +50,7 @@ export default function TransactionsPage() {
   return (
     <div className="page-stack">
       <section className="page-intro-row"><div><span className="section-kicker">Ledger</span><h2 className="page-section-title">All movements</h2></div><div className="intro-actions"><button className="button button-secondary" type="button" onClick={() => { downloadTransactionsCsv(filteredTransactions, state.wallets); notify('Your CSV export is ready.') }}><Download size={16} /> Export CSV</button><button className="button button-primary" type="button" onClick={openQuickAdd}><Plus size={17} /> Add movement</button></div></section>
-      <section className="transaction-overview"><div><span className="section-kicker">Showing {filteredTransactions.length} {filteredTransactions.length === 1 ? 'movement' : 'movements'}</span><strong>{formatCurrency(incomeTotal - expenseTotal)}</strong><small>Net in the current view</small></div><div className="transaction-totals"><span><i className="dot dot-income" /> In {formatCurrency(incomeTotal)}</span><span><i className="dot dot-expenses" /> Out {formatCurrency(expenseTotal)}</span></div></section>
+       <section className="transaction-overview"><div><span className="section-kicker">Showing {filteredTransactions.length} {filteredTransactions.length === 1 ? 'movement' : 'movements'}</span><strong><AnimatedNumber value={incomeTotal - expenseTotal} format={(amount) => formatCurrency(Math.round(amount))} /></strong><small>Net in the current view</small></div><div className="transaction-totals"><span><i className="dot dot-income" /> In <AnimatedNumber value={incomeTotal} format={(amount) => formatCurrency(Math.round(amount))} /></span><span><i className="dot dot-expenses" /> Out <AnimatedNumber value={expenseTotal} format={(amount) => formatCurrency(Math.round(amount))} /></span></div></section>
       <section className="panel transactions-panel">
         <div className="filter-toolbar">
           <label className="search-field search-field-wide"><Search size={17} /><span className="sr-only">Search transactions</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search merchant, note, or category" /></label>
