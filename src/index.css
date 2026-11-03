@@ -668,7 +668,6 @@ input, select, textarea { color: var(--ink); }
 .auth-back-button:hover { color: var(--accent-dark); }
 .auth-email-pill { width: 100%; min-height: 39px; justify-content: flex-start; padding: 0 12px; color: var(--accent-dark); background: var(--accent-soft); border: 1px solid var(--line); border-radius: 999px; text-align: left; }
 .auth-email-pill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.auth-resend-button { width: 100%; }
 .pin-form { display: grid; gap: 18px; }
 .pin-dots { display: flex; justify-content: center; gap: 11px; min-height: 25px; color: var(--accent-dark); font-size: 23px; line-height: 1; }
 .pin-dots span { display: grid; place-items: center; width: 16px; height: 16px; color: var(--muted); border: 1px solid var(--line-strong); border-radius: 50%; font-size: 15px; }

@@ -13,7 +13,7 @@ The app starts with a persistent local development adapter when Supabase credent
 
 The production build is installable as a standalone web app on supported phones and browsers.
 
-When the Supabase variables are configured, `/login` creates and signs into accounts with an email and six-digit PIN. Supabase email confirmation settings control whether a new account must verify its email before signing in.
+When the Supabase variables are configured, `/login` creates and signs into accounts with an email and six-digit PIN. Turn off **Confirm email** under Supabase Authentication > Providers > Email so a new account can enter the app immediately without email verification.
 
 ## Checks
 
@@ -30,6 +30,7 @@ npm run test:e2e
 2. Apply all files in `supabase/migrations/` in filename order. The schema uses `piso_account`, `piso_wallet`, `piso_category`, `piso_transaction`, and `piso_transaction_attachment`.
 3. Apply `supabase/seed.sql` for the category defaults.
 4. Copy `.env.example` to `.env.local` and add the public project URL and publishable key. Legacy projects may use the JWT anon key variable instead.
+5. Under Authentication > Providers > Email, disable **Confirm email** for the PIN-based signup flow.
 
 The migration enables row-level security for profile-owned records, creates private `receipts` and `wallet-logos` buckets, and exposes `create_wallet_transfer` for atomic paired ledger entries. Never put a service-role key in a `VITE_` variable or in browser code.
 
