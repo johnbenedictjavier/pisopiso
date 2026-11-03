@@ -96,15 +96,47 @@ test('keeps the primary flow usable on a narrow viewport', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Add transaction' }).first()).toBeVisible()
   await page.getByRole('link', { name: 'Wallets' }).last().click()
   await expect(page.getByRole('heading', { name: 'Wallets' }).first()).toBeVisible()
+  await page.goto('/dashboard')
+  await expect(page.locator('.dashboard-period-picker svg')).toHaveCount(0)
+  const firstFilter = await page.locator('.dashboard-period-picker button').nth(0).boundingBox()
+  const secondRowFilter = await page.locator('.dashboard-period-picker button').nth(3).boundingBox()
+  expect(firstFilter).not.toBeNull()
+  expect(secondRowFilter).not.toBeNull()
+  expect(secondRowFilter!.y).toBeGreaterThan(firstFilter!.y)
 })
 
 test('keeps demo access explicit', async ({ page }) => {
   await page.goto('/login')
 
-  await expect(page.getByRole('heading', { name: 'Keep your money close.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Create your money space.' })).toBeVisible()
   await page.getByRole('button', { name: 'Use demo space' }).click()
   await expect(page).toHaveURL(/\/overview$/)
   await expect(page.getByRole('heading', { name: 'Overview' }).first()).toBeVisible()
+})
+
+test('validates a confirmed signup PIN', async ({ page }) => {
+  await page.goto('/login')
+  await page.getByLabel('Email address').fill('new-account@example.com')
+  await page.getByRole('button', { name: 'Continue' }).click()
+  for (const digit of '123456') await page.getByRole('button', { name: digit, exact: true }).click()
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await expect(page.getByRole('heading', { name: 'Confirm your PIN.' })).toBeVisible()
+  for (const digit of '123457') await page.getByRole('button', { name: digit, exact: true }).click()
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await expect(page.getByRole('alert')).toContainText('PINs do not match')
+})
+
+test('adjusts the profile picture size', async ({ page }) => {
+  await page.goto('/settings')
+  await page.locator('input[type="file"]').first().setInputFiles({
+    name: 'profile.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
+  })
+  const avatarSize = page.getByRole('slider', { name: 'Profile picture size' })
+  await expect(avatarSize).toBeVisible()
+  await avatarSize.fill('1.3')
+  await expect(page.getByText('130%')).toBeVisible()
 })
 
 test('can start fresh without changing remote data', async ({ page }) => {

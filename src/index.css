@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Avenir Next", "Segoe UI", ui-rounded, system-ui, sans-serif;
+  --font-sans: "Inter", "Avenir Next", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Iowan Old Style", "Baskerville", "Palatino Linotype", "Book Antiqua", Georgia, serif;
   --color-piso-sage: #5f8068;
   --color-piso-forest: #2f4d3a;
   --color-piso-cream: #f4f7f3;
@@ -72,6 +73,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; }
 a { color: inherit; text-decoration: none; }
 h1, h2, h3, p { margin: 0; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 650; letter-spacing: -.035em; }
 h1, h2, h3, strong { letter-spacing: -0.025em; }
 input, select, textarea { color: var(--ink); }
 ::selection { background: var(--accent-soft); color: var(--accent-dark); }
@@ -144,7 +146,7 @@ input, select, textarea { color: var(--ink); }
 .balance-card-header, .balance-card-footer { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .balance-card-header { color: #c4d8c6; font-size: 12px; font-weight: 700; }
 .balance-period { display: inline-flex; align-items: center; gap: 5px; color: #a9c4ad; font-size: 11px; }
-.balance-value { position: relative; z-index: 1; display: block; margin-top: 38px; font-size: clamp(30px, 3.2vw, 42px); font-weight: 760; letter-spacing: -.055em; line-height: 1; }
+.balance-value { position: relative; z-index: 1; display: block; margin-top: 38px; font-family: var(--font-display); font-size: clamp(30px, 3.2vw, 42px); font-weight: 700; letter-spacing: -.055em; line-height: 1; }
 .balance-card-footer { position: absolute; right: 28px; bottom: 24px; left: 28px; color: #aec8b2; font-size: 11px; }
 .balance-change { display: inline-flex; align-items: center; gap: 5px; color: #d9edda; font-weight: 700; }
 .balance-date { color: #91ae97; }
@@ -169,6 +171,7 @@ input, select, textarea { color: var(--ink); }
 .metric-copy { display: grid; min-width: 0; gap: 1px; }
 .metric-copy > span, .metric-copy small { color: var(--muted); font-size: 11px; }
 .metric-copy strong { margin: 4px 0 2px; font-size: 22px; font-weight: 760; letter-spacing: -.045em; }
+.metric-copy strong, .wallet-card-content strong, .dashboard-total-card strong, .wallet-summary-strip strong, .transaction-overview strong, .wallet-detail-metrics strong, .transaction-detail-hero strong, .donut-center strong { font-family: var(--font-display); }
 .metric-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wallet-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 15px; }
 .wallet-card-link { display: block; min-width: 0; }
@@ -549,8 +552,8 @@ input, select, textarea { color: var(--ink); }
   .intro-actions { width: 100%; justify-content: stretch; }
   .intro-actions > * { flex: 1; }
   .dashboard-actions { width: 100%; }
-  .dashboard-period-picker { display: grid; flex: 1; grid-template-columns: repeat(5, minmax(0, 1fr)); padding-left: 5px; }
-  .dashboard-period-picker button { min-width: 0; padding: 0 4px; font-size: 9px; }
+  .dashboard-period-picker { display: grid; flex: 1; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; padding: 4px; }
+  .dashboard-period-picker button { min-width: 0; min-height: 34px; padding: 0 4px; font-size: 9px; }
   .dashboard-download { width: 40px; }
   .metric-grid, .dashboard-metrics { grid-template-columns: 1fr; gap: 10px; }
   .metric-card { min-height: 95px; padding: 16px; }
@@ -636,7 +639,7 @@ input, select, textarea { color: var(--ink); }
 .wallet-card-menu button { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 9px; color: var(--ink-soft); background: transparent; border: 0; border-radius: 8px; font-size: 11px; font-weight: 750; text-align: left; }
 .wallet-card-menu button:hover { color: var(--ink); background: var(--surface-soft); }
 .profile-avatar { display: inline-grid; flex: 0 0 auto; place-items: center; overflow: hidden; color: #fff; background: var(--accent-dark); border: 2px solid var(--surface); border-radius: 50%; font-size: 13px; font-weight: 800; box-shadow: 0 4px 12px rgba(47, 77, 58, .14); }
-.profile-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.profile-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; transform-origin: center; }
 .profile-avatar-small { width: 34px; height: 34px; }
 .profile-avatar-medium { width: 46px; height: 46px; }
 .profile-avatar-large { width: 82px; height: 82px; border-width: 3px; font-size: 25px; }
@@ -645,6 +648,9 @@ input, select, textarea { color: var(--ink); }
 .profile-photo-field strong { font-size: 13px; }
 .profile-photo-field small { overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .profile-photo-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+.avatar-size-field { padding: 12px 14px; background: var(--surface-soft); border-radius: 13px; }
+.avatar-size-field output { color: var(--accent); font-variant-numeric: tabular-nums; }
+.avatar-size-field input[type='range'] { width: 100%; accent-color: var(--accent); }
 .button-danger-filled { color: #fff; background: var(--negative); border-color: var(--negative); box-shadow: 0 7px 16px color-mix(in srgb, var(--negative) 20%, transparent); }
 .button-danger-filled:hover { background: color-mix(in srgb, var(--negative) 85%, #000); }
 .confirm-modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 17px; border-top: 1px solid var(--line); }

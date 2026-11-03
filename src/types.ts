@@ -24,6 +24,7 @@ export interface Profile {
   currency: 'PHP'
   avatarUrl: string | null
   avatarName: string | null
+  avatarScale: number
 }
 
 export interface Wallet {

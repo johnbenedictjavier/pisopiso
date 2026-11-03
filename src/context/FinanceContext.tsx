@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { createEmptyState } from '../data/seed'
 import { createId } from '../lib/ids'
 import { isCurrentMonth } from '../lib/dates'
 import { parseAmountToCents } from '../lib/money'
@@ -34,7 +33,8 @@ interface FinanceContextValue {
   deleteTransaction: (transactionId: string) => void
   updateTheme: (theme: AppState['profile']['theme']) => void
   updateDisplayName: (displayName: string) => void
-  updateAvatar: (avatarUrl: string | null, avatarName: string | null) => void
+  updateProfileIdentity: (id: string, email: string) => void
+  updateAvatar: (avatarUrl: string | null, avatarName: string | null, avatarScale: number) => void
   startFresh: () => void
 }
 
@@ -221,12 +221,16 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setState((current) => ({ ...current, profile: { ...current.profile, displayName: displayName.trim() } }))
   }
 
-  function updateAvatar(avatarUrl: string | null, avatarName: string | null): void {
-    setState((current) => ({ ...current, profile: { ...current.profile, avatarUrl, avatarName } }))
+  function updateProfileIdentity(id: string, email: string): void {
+    setState((current) => ({ ...current, profile: { ...current.profile, id, email } }))
+  }
+
+  function updateAvatar(avatarUrl: string | null, avatarName: string | null, avatarScale: number): void {
+    setState((current) => ({ ...current, profile: { ...current.profile, avatarUrl, avatarName, avatarScale } }))
   }
 
   function startFresh(): void {
-    setState(createEmptyState())
+    setState((current) => ({ ...current, wallets: [], transactions: [] }))
   }
 
   const value: FinanceContextValue = {
@@ -244,6 +248,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     deleteTransaction,
     updateTheme,
     updateDisplayName,
+    updateProfileIdentity,
     updateAvatar,
     startFresh,
   }

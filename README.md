@@ -13,6 +13,8 @@ The app starts with a persistent local development adapter when Supabase credent
 
 The production build is installable as a standalone web app on supported phones and browsers.
 
+When the Supabase variables are configured, `/login` creates and signs into accounts with an email and six-digit PIN. Supabase email confirmation settings control whether a new account must verify its email before signing in.
+
 ## Checks
 
 ```bash

@@ -126,6 +126,7 @@ export function createSeedState(): AppState {
       currency: 'PHP',
       avatarUrl: null,
       avatarName: null,
+      avatarScale: 1,
     },
     wallets,
     categories: categoryCatalog,

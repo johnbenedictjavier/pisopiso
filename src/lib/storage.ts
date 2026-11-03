@@ -32,6 +32,7 @@ function migrateAppState(value: Partial<AppState>): AppState {
       ...(value.profile ?? {}),
       avatarUrl: value.profile?.avatarUrl ?? null,
       avatarName: value.profile?.avatarName ?? null,
+      avatarScale: typeof value.profile?.avatarScale === 'number' && Number.isFinite(value.profile.avatarScale) ? Math.min(1.5, Math.max(0.5, value.profile.avatarScale)) : 1,
     },
     wallets: (value.wallets ?? seed.wallets).map((wallet) => ({
       ...wallet,

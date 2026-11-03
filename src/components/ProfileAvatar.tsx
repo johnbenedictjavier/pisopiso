@@ -8,7 +8,7 @@ interface ProfileAvatarProps {
 export default function ProfileAvatar({ profile, size = 'medium' }: ProfileAvatarProps) {
   return (
     <span className={`profile-avatar profile-avatar-${size}`} aria-label={`${profile.displayName} profile picture`}>
-      {profile.avatarUrl ? <img src={profile.avatarUrl} alt="" /> : profile.displayName.slice(0, 1).toUpperCase()}
+      {profile.avatarUrl ? <img src={profile.avatarUrl} alt="" style={{ transform: `scale(${profile.avatarScale})` }} /> : profile.displayName.slice(0, 1).toUpperCase()}
     </span>
   )
 }
