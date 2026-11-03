@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "skills": {
+    "frontend-testing-best-practices": {
+      "source": "sergiodxa/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-testing-best-practices/SKILL.md",
+      "computedHash": "d1f4a6e05d1ad541e08f394c5853727c6e61a30e2d91ee26ad3d5d0b974cf5e1"
+    },
+    "react-hook-form": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/.curated/react-hook-form/SKILL.md",
+      "computedHash": "c32b9536b64b2bbfb26ecadac5caf9ac85697f319edffe6f77c9ecd00db51d14"
+    },
+    "react-vite-best-practices": {
+      "source": "asyrafhussin/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-vite-best-practices/SKILL.md",
+      "computedHash": "bfd0d0cef40fd678863adcc5bc96a27ffb9c5cece99f56894dc22e5f36f37c6b"
+    },
+    "supabase": {
+      "source": "supabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/supabase/SKILL.md",
+      "computedHash": "af1844ade632808fc0c15cf2db87daf3b2431c5262dc8a0c3ea7d70880fadf91"
+    },
+    "supabase-postgres-best-practices": {
+      "source": "supabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
+      "computedHash": "128fac78002d916c8ca908245d398e634f540d8bcf20915b2b2359aeb18eba59"
+    },
+    "tailwind": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/.curated/tailwind/SKILL.md",
+      "computedHash": "90d9a155ed76c4e2980e4bc31853b4e73ac90b62b3da7fd23cf492e7760095c8"
+    },
+    "ui-design": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/.curated/ui-design/SKILL.md",
+      "computedHash": "2680679231ac32260b8de60f6678f8c9d9730d19c0b87eeede007926c637bd37"
+    },
+    "zod": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/.curated/zod/SKILL.md",
+      "computedHash": "e15dbf6f7f4f81616843cf855cbc984ad301455c7e298d7820c02fb3280e16f3"
+    }
+  }
+}
