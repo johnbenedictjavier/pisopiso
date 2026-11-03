@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Modal from './Modal'
 import { useFinance } from '../context/FinanceContext'
-import { blobToDataUrl, compressImage, validateImage } from '../lib/images'
+import { blobToDataUrl, compressImage, imageTransform, validateImage } from '../lib/images'
 import { parseAmountToCents } from '../lib/money'
 import { walletFormSchema, type WalletFormValues } from '../lib/validation'
 import { walletCardThemes, walletTypeLabels, type Wallet } from '../types'
@@ -25,6 +25,8 @@ export default function WalletModal({ open, onClose, onSuccess, wallet = null }:
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [logoName, setLogoName] = useState<string | null>(null)
   const [logoScale, setLogoScale] = useState(1)
+  const [logoPositionX, setLogoPositionX] = useState(0)
+  const [logoPositionY, setLogoPositionY] = useState(0)
   const [logoBusy, setLogoBusy] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
   const cameraInput = useRef<HTMLInputElement>(null)
@@ -46,6 +48,8 @@ export default function WalletModal({ open, onClose, onSuccess, wallet = null }:
     setLogoError(null)
     setLogoUrl(null)
     setLogoName(null)
+    setLogoPositionX(0)
+    setLogoPositionY(0)
     const openingBalance = wallet ? (wallet.openingBalanceCents / 100).toFixed(2).replace(/\.00$/, '') : '0'
     form.reset({
       name: wallet?.name ?? '',
@@ -58,6 +62,8 @@ export default function WalletModal({ open, onClose, onSuccess, wallet = null }:
     setLogoUrl(wallet?.logoUrl ?? null)
     setLogoName(wallet?.logoName ?? null)
     setLogoScale(wallet?.logoScale ?? 1)
+    setLogoPositionX(wallet?.logoPositionX ?? 0)
+    setLogoPositionY(wallet?.logoPositionY ?? 0)
   }, [open, wallet])
 
   async function handleLogo(file: File | undefined): Promise<void> {
@@ -74,6 +80,8 @@ export default function WalletModal({ open, onClose, onSuccess, wallet = null }:
       setLogoUrl(await blobToDataUrl(compressed))
       setLogoName(file.name)
       setLogoScale(1)
+      setLogoPositionX(0)
+      setLogoPositionY(0)
     } catch (error) {
       setLogoError(error instanceof Error ? error.message : 'Could not process this logo.')
     } finally {
@@ -88,7 +96,7 @@ export default function WalletModal({ open, onClose, onSuccess, wallet = null }:
       return
     }
     try {
-      const input = { ...values, openingBalanceCents, logoUrl, logoName, logoScale }
+      const input = { ...values, openingBalanceCents, logoUrl, logoName, logoScale, logoPositionX, logoPositionY }
       if (wallet) {
         updateWallet(wallet.id, input)
         onSuccess(`${values.name} was updated.`)
@@ -108,15 +116,15 @@ export default function WalletModal({ open, onClose, onSuccess, wallet = null }:
       <form className="form-stack" onSubmit={form.handleSubmit(handleSubmit)}>
         <div className="wallet-logo-field">
            <div className="wallet-logo-preview" style={{ '--wallet-accent': form.watch('color') } as React.CSSProperties}>
-             {logoUrl ? <img src={logoUrl} alt="Wallet logo preview" style={{ transform: `scale(${logoScale})` }} /> : <WalletCards size={28} />}
+             {logoUrl ? <img src={logoUrl} alt="Wallet logo preview" style={{ transform: imageTransform(logoScale, logoPositionX, logoPositionY) }} /> : <WalletCards size={28} />}
           </div>
-           <div className="wallet-logo-copy"><span className="section-kicker">Custom wallet logo</span><strong>{logoName ?? 'Make it unmistakably yours.'}</strong><small>Upload an image or take one with your camera. JPG, PNG, or WebP.</small><div className="wallet-logo-actions"><button className="button button-secondary button-small" type="button" onClick={() => fileInput.current?.click()} disabled={logoBusy}><ImagePlus size={15} /> Choose image</button><button className="button button-quiet button-small" type="button" onClick={() => cameraInput.current?.click()} disabled={logoBusy}><Camera size={15} /> Use camera</button>{logoUrl && <button className="icon-button icon-button-small" type="button" aria-label="Remove wallet logo" onClick={() => { setLogoUrl(null); setLogoName(null); setLogoScale(1) }}><Trash2 size={15} /></button>}</div></div>
+           <div className="wallet-logo-copy"><span className="section-kicker">Custom wallet logo</span><strong>{logoUrl ? 'Custom logo added.' : 'Make it unmistakably yours.'}</strong><small>Upload an image or take one with your camera. JPG, PNG, or WebP.</small><div className="wallet-logo-actions"><button className="button button-secondary button-small" type="button" onClick={() => fileInput.current?.click()} disabled={logoBusy}><ImagePlus size={15} /> Choose image</button><button className="button button-quiet button-small" type="button" onClick={() => cameraInput.current?.click()} disabled={logoBusy}><Camera size={15} /> Use camera</button>{logoUrl && <button className="icon-button icon-button-small" type="button" aria-label="Remove wallet logo" onClick={() => { setLogoUrl(null); setLogoName(null); setLogoScale(1); setLogoPositionX(0); setLogoPositionY(0) }}><Trash2 size={15} /></button>}</div></div>
           <input ref={fileInput} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { void handleLogo(event.target.files?.[0]); event.currentTarget.value = '' }} />
           <input ref={cameraInput} className="sr-only" type="file" accept="image/*" capture="environment" onChange={(event) => { void handleLogo(event.target.files?.[0]); event.currentTarget.value = '' }} />
         </div>
         {logoBusy && <div className="upload-status">Preparing your logo…</div>}
          {logoError && <div className="form-alert">{logoError}</div>}
-         {logoUrl && <label className="field logo-size-field"><span><span>Logo size</span><output>{Math.round(logoScale * 100)}%</output></span><input type="range" min="0.5" max="1.5" step="0.05" value={logoScale} aria-label="Logo size" onChange={(event) => setLogoScale(Number(event.target.value))} /><small className="field-hint">Adjust how the logo sits inside the wallet card.</small></label>}
+          {logoUrl && <div className="image-adjustments"><label className="field logo-size-field"><span><span>Logo size</span><output>{Math.round(logoScale * 100)}%</output></span><input type="range" min="0.5" max="1.5" step="0.05" value={logoScale} aria-label="Logo size" onChange={(event) => setLogoScale(Number(event.target.value))} /><small className="field-hint">Adjust the crop size.</small></label><label className="field image-position-field"><span><span>Horizontal position</span><output>{logoPositionX > 0 ? '+' : ''}{logoPositionX}%</output></span><input type="range" min="-50" max="50" step="1" value={logoPositionX} aria-label="Logo horizontal position" onChange={(event) => setLogoPositionX(Number(event.target.value))} /></label><label className="field image-position-field"><span><span>Vertical position</span><output>{logoPositionY > 0 ? '+' : ''}{logoPositionY}%</output></span><input type="range" min="-50" max="50" step="1" value={logoPositionY} aria-label="Logo vertical position" onChange={(event) => setLogoPositionY(Number(event.target.value))} /></label><button className="button button-quiet button-small image-position-reset" type="button" onClick={() => { setLogoPositionX(0); setLogoPositionY(0) }}>Center logo</button></div>}
         <label className="field">
           <span>Wallet name</span>
           <input placeholder="e.g. BPI Everyday" autoComplete="off" {...form.register('name')} />

@@ -1,8 +1,10 @@
 {
   "name": "PisoPiso",
   "short_name": "PisoPiso",
+  "id": "/login",
   "description": "A calm space for every peso.",
-  "start_url": "/overview",
+  "start_url": "/login",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f4f7f3",
   "theme_color": "#2f4d3a",

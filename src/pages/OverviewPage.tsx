@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowDownLeft, ArrowUpRight, BarChart3, CalendarDays, ChevronRight, CircleDollarSign, Plus, Sparkles, TrendingUp } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, BarChart3, CalendarDays, ChevronRight, CircleDollarSign, PenLine, Plus, TrendingUp } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useFinance } from '../context/FinanceContext'
@@ -78,7 +78,7 @@ export default function OverviewPage() {
            <div className="transaction-list">{transactions.slice(0, 5).map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} compact onOpen={setSelectedTransaction} />)}</div>
         </div>
         <aside className="insight-card">
-          <span className="insight-icon"><Sparkles size={19} /></span>
+          <span className="insight-icon"><PenLine size={19} /></span>
           <span className="section-kicker">A gentle nudge</span>
           <h2>Small notes become useful patterns.</h2>
           <p>Hi {firstName}, adding a note to your next expense will make your future self grateful.</p>

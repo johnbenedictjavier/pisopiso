@@ -1,5 +1,9 @@
 const acceptedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
+export function imageTransform(scale: number, positionX = 0, positionY = 0): string {
+  return `translate(${positionX}%, ${positionY}%) scale(${scale})`
+}
+
 export function validateImage(file: File, maxBytes = 8 * 1024 * 1024): string | null {
   if (!acceptedImageTypes.has(file.type)) return 'Use a JPG, PNG, or WebP image.'
   if (file.size > maxBytes) return 'Keep images under 8 MB.'

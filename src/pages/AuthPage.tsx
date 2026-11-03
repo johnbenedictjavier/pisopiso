@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, Delete, LockKeyhole, Mail, Sparkles } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Delete, LockKeyhole, Mail } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import BrandMark from '../components/BrandMark'
 import { useFinance } from '../context/FinanceContext'
 import { getSupabase } from '../lib/supabase'
 
 const PIN_LENGTH = 6
+const LAST_EMAIL_STORAGE_KEY = 'pisopiso:last-auth-email'
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 type AuthMode = 'sign-in' | 'sign-up'
 type AuthStep = 'email' | 'pin' | 'confirm-pin'
 
@@ -13,12 +15,23 @@ function onlyDigits(value: string): string {
   return value.replace(/\D/g, '').slice(0, PIN_LENGTH)
 }
 
+function getRememberedEmail(): string {
+  if (typeof window === 'undefined') return ''
+  const email = window.localStorage.getItem(LAST_EMAIL_STORAGE_KEY)?.trim().toLowerCase() ?? ''
+  return emailPattern.test(email) ? email : ''
+}
+
+function rememberEmail(email: string): void {
+  if (typeof window !== 'undefined') window.localStorage.setItem(LAST_EMAIL_STORAGE_KEY, email)
+}
+
 export default function AuthPage() {
   const navigate = useNavigate()
   const { updateProfileIdentity } = useFinance()
-  const [authMode, setAuthMode] = useState<AuthMode>('sign-up')
-  const [step, setStep] = useState<AuthStep>('email')
-  const [email, setEmail] = useState('')
+  const initialEmail = getRememberedEmail()
+  const [authMode, setAuthMode] = useState<AuthMode>(initialEmail ? 'sign-in' : 'sign-up')
+  const [step, setStep] = useState<AuthStep>(initialEmail ? 'pin' : 'email')
+  const [email, setEmail] = useState(initialEmail)
   const [pin, setPin] = useState('')
   const [confirmationPin, setConfirmationPin] = useState('')
   const [error, setError] = useState('')
@@ -36,10 +49,13 @@ export default function AuthPage() {
 
   function continueWithEmail(event: React.FormEvent<HTMLFormElement>): void {
     event.preventDefault()
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!emailPattern.test(normalizedEmail)) {
       setError('Enter a valid email address.')
       return
     }
+    setEmail(normalizedEmail)
+    rememberEmail(normalizedEmail)
     setError('')
     setNotice('')
     setStep('pin')
@@ -103,10 +119,11 @@ export default function AuthPage() {
     try {
       const client = await getSupabase()
       if (!client) {
-        setError('Account access is not configured yet. You can still use the demo space.')
+        setError('Account access is not configured yet. Add your Supabase credentials to continue.')
         return
       }
       const normalizedEmail = email.trim().toLowerCase()
+      rememberEmail(normalizedEmail)
       const result = authMode === 'sign-in'
         ? await client.auth.signInWithPassword({ email: normalizedEmail, password: pin })
         : await client.auth.signUp({
@@ -144,13 +161,12 @@ export default function AuthPage() {
     <main className="auth-page auth-keypad-page">
       <section className="auth-art">
         <div className="auth-art-top"><BrandMark /></div>
-        <div className="auth-art-copy"><span className="eyebrow"><Sparkles size={15} /> A calmer way to track money</span><h1>Every peso has a place.</h1><p>Simple enough for today. Clear enough for tomorrow.</p></div>
+        <div className="auth-art-copy"><span className="eyebrow">Your calmer money space</span><h1>Every peso has a place.</h1><p>Simple enough for today. Clear enough for tomorrow.</p></div>
         <div className="auth-orbit orbit-one" /><div className="auth-orbit orbit-two" />
         <div className="auth-art-note"><span>₱</span><div><strong>Your money space.</strong><small>Built around your rhythm.</small></div></div>
       </section>
       <section className="auth-panel">
         <div className="auth-form-wrap">
-          <div className="mobile-auth-brand"><BrandMark /></div>
           <div className="auth-mode-tabs" role="tablist" aria-label="Account access">
             <button className={authMode === 'sign-up' ? 'auth-mode-active' : ''} type="button" role="tab" aria-selected={authMode === 'sign-up'} onClick={() => changeMode('sign-up')}>Create account</button>
             <button className={authMode === 'sign-in' ? 'auth-mode-active' : ''} type="button" role="tab" aria-selected={authMode === 'sign-in'} onClick={() => changeMode('sign-in')}>Sign in</button>
@@ -169,7 +185,7 @@ export default function AuthPage() {
             </>
           ) : (
             <>
-              <button className="auth-back-button" type="button" onClick={goBackFromPin}><ArrowLeft size={15} /> {authMode === 'sign-up' && step === 'confirm-pin' ? 'Back to PIN' : email}</button>
+              <button className="auth-back-button auth-email-pill" type="button" onClick={goBackFromPin}><ArrowLeft size={15} /> <span>{authMode === 'sign-up' && step === 'confirm-pin' ? 'Back to PIN' : email}</span></button>
               <span className="section-kicker">{authMode === 'sign-up' && step === 'confirm-pin' ? 'Double-check' : authMode === 'sign-in' ? 'Your PIN' : 'Secure your account'}</span>
               <h2>{pinTitle}</h2>
               <p className="auth-lede">{pinDescription}</p>
@@ -183,12 +199,10 @@ export default function AuthPage() {
                   <button type="button" aria-label="Delete last PIN digit" onClick={removeDigit}><Delete size={19} /></button>
                 </div>
                 {error && <div className="form-alert" role="alert">{error}</div>}
-                <button className="button button-primary auth-submit" type="submit" disabled={busy || activePin.length !== PIN_LENGTH}>{busy ? 'Working…' : pinButtonLabel === 'Create account' ? <><Check size={16} /> Create account</> : pinButtonLabel === 'Sign in' ? <><LockKeyhole size={16} /> Sign in</> : <><ArrowRight size={16} /> Continue</>}</button>
+                <button className="button button-primary auth-submit" type="submit" disabled={busy || activePin.length !== PIN_LENGTH}>{busy ? 'Working...' : pinButtonLabel === 'Create account' ? <><Check size={16} /> Create account</> : pinButtonLabel === 'Sign in' ? <><LockKeyhole size={16} /> Sign in</> : <><ArrowRight size={16} /> Continue</>}</button>
               </form>
             </>
           )}
-          <div className="auth-divider"><span>or</span></div>
-          <button className="button button-secondary auth-demo-button" type="button" onClick={() => navigate('/overview')}><LockKeyhole size={16} /> Use demo space</button>
           <p className="auth-footnote">Your account details stay private and your PIN is never displayed.</p>
         </div>
       </section>

@@ -26,7 +26,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<AuthPage />} />
           <Route element={<AppShell />}>
-            <Route index element={<Navigate to="/overview" replace />} />
+            <Route index element={<Navigate to="/login" replace />} />
             <Route path="overview" element={<OverviewPage />} />
             <Route path="wallets" element={<WalletsPage />} />
             <Route path="wallets/:walletId" element={<WalletDetailPage />} />
@@ -35,7 +35,7 @@ export default function App() {
             <Route path="reports" element={<Navigate to="/dashboard" replace />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
-          <Route path="*" element={<Navigate to="/overview" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

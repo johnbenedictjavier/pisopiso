@@ -34,7 +34,7 @@ interface FinanceContextValue {
   updateTheme: (theme: AppState['profile']['theme']) => void
   updateDisplayName: (displayName: string) => void
   updateProfileIdentity: (id: string, email: string) => void
-  updateAvatar: (avatarUrl: string | null, avatarName: string | null, avatarScale: number) => void
+  updateAvatar: (avatarUrl: string | null, avatarName: string | null, avatarScale: number, avatarPositionX: number, avatarPositionY: number) => void
   startFresh: () => void
 }
 
@@ -165,6 +165,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       logoUrl: input.logoUrl,
       logoName: input.logoName,
       logoScale: input.logoScale,
+      logoPositionX: input.logoPositionX,
+      logoPositionY: input.logoPositionY,
       isArchived: false,
       createdAt: new Date().toISOString(),
     }
@@ -187,6 +189,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         logoUrl: input.logoUrl,
         logoName: input.logoName,
         logoScale: input.logoScale,
+        logoPositionX: input.logoPositionX,
+        logoPositionY: input.logoPositionY,
       } : wallet),
     }))
   }
@@ -225,8 +229,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setState((current) => ({ ...current, profile: { ...current.profile, id, email } }))
   }
 
-  function updateAvatar(avatarUrl: string | null, avatarName: string | null, avatarScale: number): void {
-    setState((current) => ({ ...current, profile: { ...current.profile, avatarUrl, avatarName, avatarScale } }))
+  function updateAvatar(avatarUrl: string | null, avatarName: string | null, avatarScale: number, avatarPositionX: number, avatarPositionY: number): void {
+    setState((current) => ({ ...current, profile: { ...current.profile, avatarUrl, avatarName, avatarScale, avatarPositionX, avatarPositionY } }))
   }
 
   function startFresh(): void {

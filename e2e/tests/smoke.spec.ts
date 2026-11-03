@@ -3,10 +3,6 @@ import { expect, test } from '@playwright/test'
 test.use({ actionTimeout: 10_000 })
 test.setTimeout(60_000)
 
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => window.localStorage.clear())
-})
-
 test('shows the overview and its seeded balances', async ({ page }) => {
   await page.goto('/overview')
 
@@ -70,6 +66,11 @@ test('can create a wallet with a custom card style and open its details', async 
   await expect(logoSize).toBeVisible()
   await logoSize.fill('1.25')
   await expect(dialog.getByText('125%')).toBeVisible()
+  await dialog.getByRole('slider', { name: 'Logo horizontal position' }).fill('18')
+  await dialog.getByRole('slider', { name: 'Logo vertical position' }).fill('-12')
+  await expect(dialog.getByText('+18%')).toBeVisible()
+  await expect(dialog.getByText('-12%')).toBeVisible()
+  await expect(dialog.getByText('weekend-logo.png')).toHaveCount(0)
   await dialog.getByRole('radio', { name: 'Ocean' }).click()
   await dialog.getByRole('button', { name: 'Add wallet' }).click()
   await expect(page.getByRole('link', { name: /Weekend cash/ })).toBeVisible()
@@ -105,13 +106,23 @@ test('keeps the primary flow usable on a narrow viewport', async ({ page }) => {
   expect(secondRowFilter!.y).toBeGreaterThan(firstFilter!.y)
 })
 
-test('keeps demo access explicit', async ({ page }) => {
-  await page.goto('/login')
+test('starts authentication at the app entry and remembers the last email', async ({ page }) => {
+  await page.goto('/')
 
+  await expect(page).toHaveURL(/\/login$/)
   await expect(page.getByRole('heading', { name: 'Create your money space.' })).toBeVisible()
-  await page.getByRole('button', { name: 'Use demo space' }).click()
-  await expect(page).toHaveURL(/\/overview$/)
-  await expect(page.getByRole('heading', { name: 'Overview' }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Use demo space' })).toHaveCount(0)
+  const manifest = await page.request.get('/manifest.webmanifest')
+  expect((await manifest.json()).start_url).toBe('/login')
+
+  await page.getByLabel('Email address').fill('returning@example.com')
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await expect(page.getByRole('heading', { name: 'Choose a six-digit PIN.' })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Enter your PIN.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'returning@example.com' })).toBeVisible()
+  await page.getByRole('tab', { name: 'Create account' }).click()
+  await expect(page.getByRole('heading', { name: 'Create your money space.' })).toBeVisible()
 })
 
 test('validates a confirmed signup PIN', async ({ page }) => {
@@ -137,6 +148,36 @@ test('adjusts the profile picture size', async ({ page }) => {
   await expect(avatarSize).toBeVisible()
   await avatarSize.fill('1.3')
   await expect(page.getByText('130%')).toBeVisible()
+  await page.getByRole('slider', { name: 'Profile picture horizontal position' }).fill('20')
+  await page.getByRole('slider', { name: 'Profile picture vertical position' }).fill('-15')
+  await expect(page.getByText('+20%')).toBeVisible()
+  await expect(page.getByText('-15%')).toBeVisible()
+  await page.getByRole('button', { name: 'Save profile' }).click()
+  await page.reload()
+  await expect(page.getByRole('slider', { name: 'Profile picture horizontal position' })).toHaveValue('20')
+  await expect(page.getByRole('slider', { name: 'Profile picture vertical position' })).toHaveValue('-15')
+})
+
+test('keeps the auth screens inside a mobile viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/login')
+  const fitsViewport = async () => page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight && document.body.scrollHeight <= window.innerHeight)
+
+  expect(await fitsViewport()).toBe(true)
+  await page.getByLabel('Email address').fill('mobile@example.com')
+  await page.getByRole('button', { name: 'Continue' }).click()
+  expect(await fitsViewport()).toBe(true)
+  for (const digit of '123456') await page.getByRole('button', { name: digit, exact: true }).click()
+  await page.getByRole('button', { name: 'Continue' }).click()
+  expect(await fitsViewport()).toBe(true)
+
+  await page.evaluate(() => window.localStorage.clear())
+  await page.setViewportSize({ width: 320, height: 568 })
+  await page.goto('/login')
+  expect(await fitsViewport()).toBe(true)
+  await page.getByLabel('Email address').fill('short-screen@example.com')
+  await page.getByRole('button', { name: 'Continue' }).click()
+  expect(await fitsViewport()).toBe(true)
 })
 
 test('can start fresh without changing remote data', async ({ page }) => {

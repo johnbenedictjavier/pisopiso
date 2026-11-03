@@ -10,7 +10,7 @@ import WalletModal from '../components/WalletModal'
 import { useFinance } from '../context/FinanceContext'
 import { formatCurrency } from '../lib/money'
 import { useShell } from '../layout/AppShell'
-import type { Transaction } from '../types'
+import { walletTypeLabels, type Transaction } from '../types'
 
 export default function WalletDetailPage() {
   const { walletId } = useParams()
@@ -32,7 +32,7 @@ export default function WalletDetailPage() {
       <div className="detail-back-row"><Link to="/wallets" className="back-link"><ArrowLeft size={16} /> Wallets</Link><div className="detail-actions">{!wallet.isArchived && <><button className="button button-secondary button-small" type="button" onClick={() => setEditOpen(true)}><Pencil size={14} /> Edit</button><button className="button button-quiet button-small" type="button" onClick={() => setArchiveOpen(true)}><Archive size={14} /> Archive</button></>}{!wallet.isArchived && <button className="button button-primary" type="button" onClick={openQuickAdd}><Plus size={16} /> Add movement</button>}</div></div>
       <section className="wallet-detail-hero">
         <div className="wallet-detail-card"><WalletCard wallet={wallet} featured /><div className="wallet-card-glow" /></div>
-        <div className="wallet-detail-copy"><span className="section-kicker">{wallet.isArchived ? 'Archived' : 'Wallet'}</span><h2>{wallet.name}</h2><p>{wallet.logoName ?? 'Account details and activity'}</p></div>
+        <div className="wallet-detail-copy"><span className="section-kicker">{wallet.isArchived ? 'Archived' : 'Wallet'}</span><h2>{wallet.name}</h2><p>{walletTypeLabels[wallet.type]} account details and activity</p></div>
       </section>
       <section className="wallet-detail-metrics"><div><span>Current balance</span><strong>{formatCurrency(getWalletBalance(wallet.id))}</strong></div><div><span>Money in</span><strong className="amount-positive">{formatCurrency(income)}</strong></div><div><span>Money out</span><strong className="amount-negative">{formatCurrency(expenses)}</strong></div><div><span>Movements</span><strong>{walletTransactions.length}</strong></div></section>
       <section className="panel wallet-history-panel"><div className="section-heading-row"><div><span className="section-kicker">Activity</span><h2>Transaction history</h2></div><span className="wallet-history-count"><CalendarDays size={14} /> {walletTransactions.length} movements</span></div>{walletTransactions.length ? <div className="transaction-list transaction-list-full">{walletTransactions.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} onOpen={setSelectedTransaction} />)}</div> : <EmptyState title="No movements yet" description="Add a movement to start tracking this wallet." action={!wallet.isArchived ? { label: 'Add movement', onClick: openQuickAdd } : undefined} />}</section>

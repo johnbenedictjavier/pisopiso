@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pisopiso-shell-v1'
+const CACHE_NAME = 'pisopiso-shell-v2'
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/pisopisologo.png']
 
 self.addEventListener('install', (event) => {

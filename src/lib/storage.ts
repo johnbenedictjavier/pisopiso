@@ -4,6 +4,10 @@ import type { AppState } from '../types'
 const STORAGE_KEY = 'pisopiso:local-state:v2'
 const LEGACY_STORAGE_KEY = 'pisopiso:local-state:v1'
 
+function clampImagePosition(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.min(50, Math.max(-50, value)) : 0
+}
+
 export function loadAppState(): AppState {
   if (typeof window === 'undefined') return createSeedState()
   const stored = window.localStorage.getItem(STORAGE_KEY)
@@ -33,6 +37,8 @@ function migrateAppState(value: Partial<AppState>): AppState {
       avatarUrl: value.profile?.avatarUrl ?? null,
       avatarName: value.profile?.avatarName ?? null,
       avatarScale: typeof value.profile?.avatarScale === 'number' && Number.isFinite(value.profile.avatarScale) ? Math.min(1.5, Math.max(0.5, value.profile.avatarScale)) : 1,
+      avatarPositionX: clampImagePosition(value.profile?.avatarPositionX),
+      avatarPositionY: clampImagePosition(value.profile?.avatarPositionY),
     },
     wallets: (value.wallets ?? seed.wallets).map((wallet) => ({
       ...wallet,
@@ -40,6 +46,8 @@ function migrateAppState(value: Partial<AppState>): AppState {
       logoUrl: wallet.logoUrl ?? null,
       logoName: wallet.logoName ?? null,
       logoScale: typeof wallet.logoScale === 'number' && Number.isFinite(wallet.logoScale) ? Math.min(1.5, Math.max(0.5, wallet.logoScale)) : 1,
+      logoPositionX: clampImagePosition(wallet.logoPositionX),
+      logoPositionY: clampImagePosition(wallet.logoPositionY),
     })),
     transactions: (value.transactions ?? seed.transactions).map((transaction) => ({
       ...transaction,

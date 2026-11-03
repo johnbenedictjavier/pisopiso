@@ -25,6 +25,8 @@ export interface Profile {
   avatarUrl: string | null
   avatarName: string | null
   avatarScale: number
+  avatarPositionX: number
+  avatarPositionY: number
 }
 
 export interface Wallet {
@@ -39,6 +41,8 @@ export interface Wallet {
   logoUrl: string | null
   logoName: string | null
   logoScale: number
+  logoPositionX: number
+  logoPositionY: number
   isArchived: boolean
   createdAt: string
 }
@@ -107,6 +111,8 @@ export interface AddWalletInput {
   logoUrl: string | null
   logoName: string | null
   logoScale: number
+  logoPositionX: number
+  logoPositionY: number
 }
 
 export type UpdateWalletInput = AddWalletInput
