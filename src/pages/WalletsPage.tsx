@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Plus, WalletCards } from 'lucide-react'
 import ConfirmModal from '../components/ConfirmModal'
 import EmptyState from '../components/EmptyState'
@@ -10,8 +10,8 @@ import { formatCurrency } from '../lib/money'
 import { useShell } from '../layout/AppShell'
 import type { Wallet } from '../types'
 
-const WALLET_GRAB_DELAY_MS = 3000
-type WalletDragState = { walletId: string; pointerId: number; startX: number; startY: number; grabbed: boolean; holdTimer: number | null }
+const WALLET_GRAB_DELAY_MS = 2000
+type WalletDragState = { walletId: string; pointerId: number; pointerType: string; target: HTMLElement; startX: number; startY: number; grabbed: boolean; holdTimer: number | null; touchMoveGuard: ((event: TouchEvent) => void) | null }
 
 export default function WalletsPage() {
   const { activeWallets, getWalletBalance, archiveWallet, reorderWallets } = useFinance()
@@ -26,6 +26,13 @@ export default function WalletsPage() {
   const dragRef = useRef<WalletDragState | null>(null)
   const suppressClickRef = useRef<string | null>(null)
   const total = activeWallets.reduce((sum, wallet) => sum + getWalletBalance(wallet.id), 0)
+
+  useEffect(() => () => {
+    const drag = dragRef.current
+    if (!drag) return
+    if (drag.holdTimer !== null) window.clearTimeout(drag.holdTimer)
+    unlockTouchScroll(drag)
+  }, [])
 
   function openAdd(): void {
     setEditingWallet(null)
@@ -54,16 +61,48 @@ export default function WalletsPage() {
     return element instanceof HTMLElement ? element.dataset.walletId ?? null : null
   }
 
+  function suppressWalletClick(walletId: string): void {
+    suppressClickRef.current = walletId
+    window.setTimeout(() => {
+      if (suppressClickRef.current === walletId) suppressClickRef.current = null
+    }, 120)
+  }
+
+  function lockTouchScroll(drag: WalletDragState): void {
+    if (drag.pointerType !== 'touch' || drag.touchMoveGuard) return
+    const guard = (event: TouchEvent) => {
+      if (dragRef.current === drag && drag.grabbed) event.preventDefault()
+    }
+    document.addEventListener('touchmove', guard, { passive: false })
+    drag.touchMoveGuard = guard
+  }
+
+  function unlockTouchScroll(drag: WalletDragState): void {
+    if (!drag.touchMoveGuard) return
+    document.removeEventListener('touchmove', drag.touchMoveGuard)
+    drag.touchMoveGuard = null
+  }
+
   function beginWalletDrag(walletId: string, event: React.PointerEvent<HTMLElement>): void {
     if (event.pointerType === 'mouse' && event.button !== 0) return
-    event.currentTarget.setPointerCapture(event.pointerId)
-    const drag: WalletDragState = { walletId, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, grabbed: false, holdTimer: null }
+    if (event.pointerType !== 'touch') event.currentTarget.setPointerCapture(event.pointerId)
+    const drag: WalletDragState = { walletId, pointerId: event.pointerId, pointerType: event.pointerType, target: event.currentTarget, startX: event.clientX, startY: event.clientY, grabbed: false, holdTimer: null, touchMoveGuard: null }
     dragRef.current = drag
     drag.holdTimer = window.setTimeout(() => {
       if (dragRef.current !== drag) return
+      if (drag.pointerType === 'touch') {
+        try {
+          if (!drag.target.hasPointerCapture(drag.pointerId)) drag.target.setPointerCapture(drag.pointerId)
+        } catch {
+          dragRef.current = null
+          setPressingWalletId(null)
+          return
+        }
+      }
       drag.grabbed = true
       setPressingWalletId(null)
       setDraggingWalletId(walletId)
+      lockTouchScroll(drag)
       setReorderStatus(`Holding ${activeWallets.find((wallet) => wallet.id === walletId)?.name ?? 'wallet'}; move to rearrange.`)
     }, WALLET_GRAB_DELAY_MS)
     setPressingWalletId(walletId)
@@ -95,12 +134,12 @@ export default function WalletsPage() {
       if (wallet && targetIndex >= 0) setReorderStatus(`${wallet.name} moved to position ${targetIndex + 1}.`)
     }
     if (drag.grabbed) {
-      suppressClickRef.current = drag.walletId
-      window.setTimeout(() => {
-        if (suppressClickRef.current === drag.walletId) suppressClickRef.current = null
-      }, 120)
+      suppressWalletClick(drag.walletId)
+    } else if (cancelled) {
+      suppressWalletClick(drag.walletId)
     }
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    unlockTouchScroll(drag)
+    if (drag.target.hasPointerCapture(event.pointerId)) drag.target.releasePointerCapture(event.pointerId)
     dragRef.current = null
     setPressingWalletId(null)
     setDraggingWalletId(null)

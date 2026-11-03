@@ -80,9 +80,9 @@ export default function TransactionsPage() {
           {visibleTransactions.length ? <div className="transaction-list transaction-list-full">{visibleTransactions.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} onOpen={setSelectedTransaction} onDelete={setDeleteTarget} />)}</div> : <EmptyState icon={hasFilters ? SearchX : undefined} title={hasFilters ? 'No movements found' : 'No movements yet'} description={hasFilters ? 'Try a different search or clear the filters to see your full ledger.' : 'Add your first movement to start the ledger.'} action={hasFilters ? { label: 'Clear filters', onClick: clearFilters } : { label: 'Add movement', onClick: openQuickAdd }} secondaryAction={hasFilters ? { label: 'Add movement', onClick: openQuickAdd } : undefined} />}
           <TransactionPagination total={filteredTransactions.length} page={page} onPageChange={setPage} />
         </section>
-        <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} onEdit={editTransaction} />
+        <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} onEdit={editTransaction} onDelete={(transaction) => { setSelectedTransaction(null); setDeleteTarget(transaction) }} />
         <TransactionModal open={Boolean(editTarget)} transaction={editTarget} onClose={() => setEditTarget(null)} onSuccess={(message) => { setEditTarget(null); notify(message) }} />
-       <ConfirmModal open={Boolean(deleteTarget)} title="Remove movement?" message="This movement will be hidden from your active list." confirmLabel="Remove" danger onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} />
+       <ConfirmModal open={Boolean(deleteTarget)} title="Remove movement?" message={deleteTarget?.type === 'transfer' ? 'Both wallet entries for this transfer will be hidden from your active list.' : 'This movement will be hidden from your active list.'} confirmLabel="Remove" danger onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} />
      </div>
   )
 }

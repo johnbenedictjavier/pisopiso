@@ -177,7 +177,7 @@ input, select, textarea { color: var(--ink); }
 .wallet-card:before { position: absolute; top: -55%; right: -20%; z-index: -1; width: 80%; aspect-ratio: 1; border: 1px solid rgba(255,255,255,.16); border-radius: 50%; content: ''; }
 .wallet-card:after { position: absolute; right: -10%; bottom: -38%; z-index: -1; width: 72%; aspect-ratio: 1; border: 1px solid rgba(255,255,255,.13); border-radius: 50%; content: ''; }
 .wallet-card-interactive { cursor: pointer; }
-.wallet-card-reorderable { touch-action: none; }
+.wallet-card-reorderable { touch-action: auto; }
 .wallet-card-interactive:hover { transform: translateY(-5px) rotate(.3deg); box-shadow: 0 24px 43px rgba(32, 55, 42, .22); }
 .wallet-card-interactive:focus-visible { outline-color: #f9d67c; outline-offset: 4px; }
 .wallet-card-featured { min-height: 225px; padding: 21px; }
@@ -185,9 +185,9 @@ input, select, textarea { color: var(--ink); }
 .wallet-card:hover .wallet-card-shine { transform: translateX(170%) rotate(18deg); }
 .wallet-card-top, .wallet-card-footer { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .wallet-card-top { z-index: 4; }
-.wallet-card-pressing { cursor: grabbing; touch-action: none; animation: wallet-card-hold 3s ease-in-out both; }
+.wallet-card-pressing { cursor: grabbing; touch-action: auto; animation: wallet-card-hold 2s ease-in-out both; }
 .wallet-card-interactive.wallet-card-pressing:hover { transform: none; }
-.wallet-card-dragging { cursor: grabbing; opacity: .78; transform: translateY(-8px) rotate(-.6deg) scale(1.025); box-shadow: 0 30px 48px rgba(32, 55, 42, .3); }
+.wallet-card-dragging { cursor: grabbing; touch-action: none; opacity: .78; transform: translateY(-8px) rotate(-.6deg) scale(1.025); box-shadow: 0 30px 48px rgba(32, 55, 42, .3); }
 .wallet-card-drop-target { outline: 2px dashed rgba(255,255,255,.8); outline-offset: 4px; }
 @keyframes wallet-card-hold { 0% { transform: translateY(0) scale(1); box-shadow: 0 18px 34px rgba(32, 55, 42, .16); } 62% { transform: translateY(-3px) scale(1.012); box-shadow: 0 24px 40px rgba(32, 55, 42, .23); } 100% { transform: translateY(-7px) scale(1.02); box-shadow: 0 30px 48px rgba(32, 55, 42, .3); } }
 .wallet-card-arrow { display: inline-grid; place-items: center; width: 29px; height: 29px; color: rgba(255,255,255,.82); background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.16); border-radius: 9px; }

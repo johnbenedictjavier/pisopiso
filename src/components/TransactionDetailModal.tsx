@@ -1,4 +1,4 @@
-import { CalendarDays, Download, FileImage, FolderOpen, Pencil, WalletCards } from 'lucide-react'
+import { CalendarDays, Download, FileImage, FolderOpen, Pencil, Trash2, WalletCards } from 'lucide-react'
 import Modal from './Modal'
 import { useFinance, transactionSign, transactionTypeLabel } from '../context/FinanceContext'
 import { formatDate } from '../lib/dates'
@@ -10,9 +10,10 @@ interface TransactionDetailModalProps {
   transaction: Transaction | null
   onClose: () => void
   onEdit?: (transaction: Transaction) => void
+  onDelete?: (transaction: Transaction) => void
 }
 
-export default function TransactionDetailModal({ transaction, onClose, onEdit }: TransactionDetailModalProps) {
+export default function TransactionDetailModal({ transaction, onClose, onEdit, onDelete }: TransactionDetailModalProps) {
   const { state, getWallet } = useFinance()
   const category = transaction ? state.categories.find((item) => item.id === transaction.categoryId) : undefined
   const wallet = transaction ? getWallet(transaction.walletId) : undefined
@@ -40,6 +41,7 @@ export default function TransactionDetailModal({ transaction, onClose, onEdit }:
            <div className="transaction-detail-footnote">Recorded as {formatCurrency(transaction.amountCents)} · {transaction.receiptName ?? 'No attachment'}</div>
            <div className="modal-actions">
              {onEdit && <button className="button button-secondary" type="button" onClick={() => onEdit(transaction)}><Pencil size={15} /> Edit movement</button>}
+             {onDelete && <button className="button button-danger" type="button" onClick={() => onDelete(transaction)}><Trash2 size={15} /> Delete movement</button>}
              <button className="button button-quiet" type="button" onClick={onClose}>Close</button>
            </div>
          </div>

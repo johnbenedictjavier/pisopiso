@@ -10,6 +10,7 @@ import AnimatedNumber from '../components/AnimatedNumber'
 import TransactionRow from '../components/TransactionRow'
 import TransactionDetailModal from '../components/TransactionDetailModal'
 import TransactionModal from '../components/TransactionModal'
+import ConfirmModal from '../components/ConfirmModal'
 import WalletCard from '../components/WalletCard'
 import { useShell } from '../layout/AppShell'
 import type { Transaction } from '../types'
@@ -35,10 +36,11 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
 }
 
 export default function OverviewPage() {
-  const { state, activeWallets, transactions, totalBalanceCents, monthIncomeCents, monthExpensesCents, monthNetCents } = useFinance()
+  const { state, activeWallets, transactions, totalBalanceCents, monthIncomeCents, monthExpensesCents, monthNetCents, deleteTransaction: removeTransaction } = useFinance()
   const { openQuickAdd, notify } = useShell()
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
   const [editTarget, setEditTarget] = useState<Transaction | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
   const chartData = useMemo(() => buildCashflowData(transactions), [transactions])
   const topWallets = activeWallets.slice(0, 3)
   const firstName = state.profile.displayName.split(' ')[0]
@@ -46,6 +48,13 @@ export default function OverviewPage() {
   function editTransaction(transaction: Transaction): void {
     setSelectedTransaction(null)
     setEditTarget(transaction)
+  }
+
+  function confirmDelete(): void {
+    if (!deleteTarget) return
+    removeTransaction(deleteTarget.id)
+    notify('Movement removed.')
+    setDeleteTarget(null)
   }
 
   return (
@@ -95,8 +104,9 @@ export default function OverviewPage() {
       </section>
 
        <section className="quiet-banner"><BarChart3 size={18} /><span>See the bigger picture across your money.</span><Link to="/dashboard">Open dashboard <ChevronRight size={16} /></Link></section>
-       <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} onEdit={editTransaction} />
+       <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} onEdit={editTransaction} onDelete={(transaction) => { setSelectedTransaction(null); setDeleteTarget(transaction) }} />
        <TransactionModal open={Boolean(editTarget)} transaction={editTarget} onClose={() => setEditTarget(null)} onSuccess={(message) => { setEditTarget(null); notify(message) }} />
+       <ConfirmModal open={Boolean(deleteTarget)} title="Remove movement?" message={deleteTarget?.type === 'transfer' ? 'Both wallet entries for this transfer will be hidden from your active list.' : 'This movement will be hidden from your active list.'} confirmLabel="Remove" danger onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} />
     </div>
   )
 }

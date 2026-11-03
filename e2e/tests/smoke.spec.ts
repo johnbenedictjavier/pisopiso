@@ -254,6 +254,24 @@ test('edits income, expense, and linked transfer movements', async ({ page }) =>
   await expect(page.getByText('+₱750.00')).toBeVisible()
 })
 
+test('deletes both entries when removing a transfer from history', async ({ page }) => {
+  await openUnlockedApp(page)
+  await page.goto('/transactions')
+
+  await page.locator('.transaction-row').filter({ hasText: 'To Cash on hand' }).first().click()
+  const detailDialog = page.getByRole('dialog')
+  await expect(detailDialog.getByRole('button', { name: 'Edit movement' })).toBeVisible()
+  await detailDialog.getByRole('button', { name: 'Delete movement' }).click()
+  const confirmDialog = page.getByRole('dialog')
+  await expect(confirmDialog.getByRole('heading', { name: 'Remove movement?' })).toBeVisible()
+  await confirmDialog.getByRole('button', { name: 'Remove' }).click()
+
+  await expect(page.getByRole('status')).toContainText('Movement removed.')
+  await expect(page.locator('.transaction-row').filter({ hasText: 'To Cash on hand' })).toHaveCount(0)
+  await expect(page.locator('.transaction-row').filter({ hasText: 'From BPI Everyday' })).toHaveCount(0)
+  await expect(page.getByText('1-10 of 11', { exact: true })).toBeVisible()
+})
+
 test('paginates wallet transaction history', async ({ page }) => {
   await openUnlockedApp(page)
   await page.goto('/wallets/wallet-test-bpi')
@@ -308,15 +326,16 @@ test('reorders wallets and preserves the first position', async ({ page }) => {
   const firstWallet = page.locator('.wallets-page-grid > article.wallet-card').first()
   await expect(firstWallet).toHaveAttribute('data-wallet-id', 'wallet-test-bpi')
   await expect(firstWallet).toHaveClass(/wallet-card-reorderable/)
+  expect(await firstWallet.evaluate((element) => getComputedStyle(element).touchAction)).toBe('auto')
   const firstBox = await page.locator('[data-wallet-id="wallet-test-bpi"]').boundingBox()
   const secondBox = await page.locator('[data-wallet-id="wallet-test-cash"]').boundingBox()
   expect(firstBox).not.toBeNull()
   expect(secondBox).not.toBeNull()
   await page.mouse.move(firstBox!.x + firstBox!.width / 2, firstBox!.y + firstBox!.height / 2)
   await page.mouse.down()
-  await page.waitForTimeout(1000)
+  await page.waitForTimeout(700)
   await expect(page.locator('[data-wallet-id="wallet-test-bpi"]')).toHaveClass(/wallet-card-pressing/)
-  await page.waitForTimeout(2200)
+  await page.waitForTimeout(1500)
   await expect(page.locator('[data-wallet-id="wallet-test-bpi"]')).toHaveClass(/wallet-card-dragging/)
   await page.mouse.move(secondBox!.x + secondBox!.width / 2, secondBox!.y + secondBox!.height / 2)
   await page.mouse.up()

@@ -18,10 +18,11 @@ import { walletTypeLabels, type Transaction } from '../types'
 export default function WalletDetailPage() {
   const { walletId } = useParams()
   const navigate = useNavigate()
-  const { activeWallets, transactions, getWallet, getWalletBalance, archiveWallet } = useFinance()
+  const { activeWallets, transactions, getWallet, getWalletBalance, archiveWallet, deleteTransaction: removeTransaction } = useFinance()
   const { openQuickAdd, notify } = useShell()
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
   const [editTarget, setEditTarget] = useState<Transaction | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
   const [editOpen, setEditOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [page, setPage] = useState(0)
@@ -44,6 +45,13 @@ export default function WalletDetailPage() {
     setEditTarget(transaction)
   }
 
+  function confirmDelete(): void {
+    if (!deleteTarget) return
+    removeTransaction(deleteTarget.id)
+    notify('Movement removed.')
+    setDeleteTarget(null)
+  }
+
   if (!wallet) return <EmptyState title="Wallet not found" description="This wallet may have been archived or does not exist." action={{ label: 'Back to wallets', onClick: () => navigate('/wallets') }} />
 
   const visibleTransactions = walletTransactions.slice(page * TRANSACTION_PAGE_SIZE, (page + 1) * TRANSACTION_PAGE_SIZE)
@@ -58,10 +66,11 @@ export default function WalletDetailPage() {
       <section className="wallet-detail-metrics"><div><span>Current balance</span><strong><AnimatedNumber value={getWalletBalance(wallet.id)} format={(amount) => formatCurrency(Math.round(amount))} /></strong></div><div><span>Money in</span><strong className="amount-positive"><AnimatedNumber value={income} format={(amount) => formatCurrency(Math.round(amount))} /></strong></div><div><span>Money out</span><strong className="amount-negative"><AnimatedNumber value={expenses} format={(amount) => formatCurrency(Math.round(amount))} /></strong></div><div><span>Movements</span><strong><AnimatedNumber value={walletTransactions.length} format={(amount) => String(Math.round(amount))} /></strong></div></section>
        <section className="panel wallet-history-panel"><div className="section-heading-row"><div><span className="section-kicker">Activity</span><h2>Transaction history</h2></div><span className="wallet-history-count"><CalendarDays size={14} /> {walletTransactions.length} movements</span></div>{visibleTransactions.length ? <div className="transaction-list transaction-list-full">{visibleTransactions.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} onOpen={setSelectedTransaction} />)}</div> : <EmptyState title="No movements yet" description="Add a movement to start tracking this wallet." action={!wallet.isArchived ? { label: 'Add movement', onClick: openQuickAdd } : undefined} />}<TransactionPagination total={walletTransactions.length} page={page} onPageChange={setPage} /></section>
       {activeWallets.length > 1 && <section className="related-wallets"><div className="section-heading-row"><div><span className="section-kicker">Your other places</span><h2>Move money with context</h2></div><Link to="/wallets" className="text-link">See all <ChevronRight size={16} /></Link></div><div className="related-wallet-list">{activeWallets.filter((item) => item.id !== wallet.id).slice(0, 3).map((item) => <Link key={item.id} to={`/wallets/${item.id}`} className="related-wallet"><WalletCards size={17} /><span>{item.name}</span><ArrowUpRight size={15} /></Link>)}</div></section>}
-       <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} onEdit={editTransaction} />
+       <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} onEdit={editTransaction} onDelete={(transaction) => { setSelectedTransaction(null); setDeleteTarget(transaction) }} />
        <TransactionModal open={Boolean(editTarget)} transaction={editTarget} onClose={() => setEditTarget(null)} onSuccess={(message) => { setEditTarget(null); notify(message) }} />
-      <WalletModal open={editOpen} wallet={wallet} onClose={() => setEditOpen(false)} onSuccess={() => setEditOpen(false)} />
-      <ConfirmModal open={archiveOpen} title="Archive wallet?" message={`${wallet.name} will leave active wallets, but its history will remain.`} confirmLabel="Archive" danger onClose={() => setArchiveOpen(false)} onConfirm={() => { archiveWallet(wallet.id); setArchiveOpen(false); navigate('/wallets') }} />
+       <WalletModal open={editOpen} wallet={wallet} onClose={() => setEditOpen(false)} onSuccess={() => setEditOpen(false)} />
+       <ConfirmModal open={archiveOpen} title="Archive wallet?" message={`${wallet.name} will leave active wallets, but its history will remain.`} confirmLabel="Archive" danger onClose={() => setArchiveOpen(false)} onConfirm={() => { archiveWallet(wallet.id); setArchiveOpen(false); navigate('/wallets') }} />
+       <ConfirmModal open={Boolean(deleteTarget)} title="Remove movement?" message={deleteTarget?.type === 'transfer' ? 'Both wallet entries for this transfer will be hidden from your active list.' : 'This movement will be hidden from your active list.'} confirmLabel="Remove" danger onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} />
     </div>
   )
 }
