@@ -37,6 +37,7 @@ export interface Wallet {
   cardTheme: WalletCardTheme
   logoUrl: string | null
   logoName: string | null
+  logoScale: number
   isArchived: boolean
   createdAt: string
 }
@@ -104,6 +105,7 @@ export interface AddWalletInput {
   cardTheme: WalletCardTheme
   logoUrl: string | null
   logoName: string | null
+  logoScale: number
 }
 
 export type UpdateWalletInput = AddWalletInput

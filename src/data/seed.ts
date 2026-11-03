@@ -51,6 +51,7 @@ export function createSeedState(): AppState {
       cardTheme: 'emerald',
       logoUrl: null,
       logoName: null,
+      logoScale: 1,
       isArchived: false,
       createdAt: daysAgo(90),
     },
@@ -65,6 +66,7 @@ export function createSeedState(): AppState {
       cardTheme: 'violet',
       logoUrl: null,
       logoName: null,
+      logoScale: 1,
       isArchived: false,
       createdAt: daysAgo(65),
     },
@@ -79,6 +81,7 @@ export function createSeedState(): AppState {
       cardTheme: 'sand',
       logoUrl: null,
       logoName: null,
+      logoScale: 1,
       isArchived: false,
       createdAt: daysAgo(120),
     },
@@ -93,6 +96,7 @@ export function createSeedState(): AppState {
       cardTheme: 'ocean',
       logoUrl: null,
       logoName: null,
+      logoScale: 1,
       isArchived: false,
       createdAt: daysAgo(52),
     },
@@ -126,5 +130,14 @@ export function createSeedState(): AppState {
     wallets,
     categories: categoryCatalog,
     transactions,
+  }
+}
+
+export function createEmptyState(): AppState {
+  const seed = createSeedState()
+  return {
+    ...seed,
+    wallets: [],
+    transactions: [],
   }
 }

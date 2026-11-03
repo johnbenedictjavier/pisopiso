@@ -53,8 +53,7 @@ export default function OverviewPage() {
         <article className="balance-card">
           <div className="balance-card-header"><span>Total balance</span><span className="balance-period"><CalendarDays size={14} /> All wallets</span></div>
           <strong className="balance-value">{formatCurrency(totalBalanceCents)}</strong>
-          <div className="balance-card-footer"><span className="balance-change"><TrendingUp size={15} /> {formatSignedCurrency(monthNetCents)} this month</span><span className="balance-date">Updated just now</span></div>
-          <div className="balance-decoration"><span /><span /><span /></div>
+           <div className="balance-card-footer"><span className="balance-change"><TrendingUp size={15} /> {formatSignedCurrency(monthNetCents)} this month</span><span className="balance-date">Updated just now</span></div>
         </article>
         <article className="chart-card">
           <div className="card-heading-row"><div><span className="section-kicker">Cash flow</span><h2>Last 7 days</h2></div><span className="chart-legend"><i className="dot dot-income" /> Income <i className="dot dot-expenses" /> Expenses</span></div>

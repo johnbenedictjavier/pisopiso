@@ -35,6 +35,7 @@ create table if not exists public.piso_wallet (
   card_theme text not null default 'emerald' check (card_theme in ('emerald', 'ocean', 'sunset', 'violet', 'midnight', 'sand')),
   logo_path text,
   logo_name text,
+  logo_scale numeric(3, 2) not null default 1 check (logo_scale between 0.5 and 1.5),
   is_archived boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

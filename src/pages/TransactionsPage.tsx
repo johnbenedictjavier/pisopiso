@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Download, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react'
+import { Download, Filter, Plus, Search, SearchX, SlidersHorizontal } from 'lucide-react'
 import EmptyState from '../components/EmptyState'
 import ConfirmModal from '../components/ConfirmModal'
 import TransactionRow from '../components/TransactionRow'
@@ -36,8 +36,15 @@ export default function TransactionsPage() {
     setDeleteTarget(null)
   }
 
+  function clearFilters(): void {
+    setQuery('')
+    setFilter('all')
+    setWalletFilter('all')
+  }
+
   const expenseTotal = filteredTransactions.filter((item) => item.type === 'expense').reduce((sum, item) => sum + item.amountCents, 0)
   const incomeTotal = filteredTransactions.filter((item) => item.type === 'income').reduce((sum, item) => sum + item.amountCents, 0)
+  const hasFilters = Boolean(query.trim() || filter !== 'all' || walletFilter !== 'all')
 
   return (
     <div className="page-stack">
@@ -50,7 +57,7 @@ export default function TransactionsPage() {
           <select className="filter-select" value={walletFilter} onChange={(event) => setWalletFilter(event.target.value)} aria-label="Filter by wallet"><option value="all">All wallets</option>{state.wallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}</select>
           <button className="icon-button filter-button" type="button" aria-label="More filters"><SlidersHorizontal size={18} /><Filter size={13} /></button>
         </div>
-         {filteredTransactions.length ? <div className="transaction-list transaction-list-full">{filteredTransactions.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} onOpen={setSelectedTransaction} onDelete={setDeleteTarget} />)}</div> : <EmptyState title="Nothing matches yet" description="Try another search or add a movement." action={{ label: 'Add movement', onClick: openQuickAdd }} />}
+         {filteredTransactions.length ? <div className="transaction-list transaction-list-full">{filteredTransactions.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} onOpen={setSelectedTransaction} onDelete={setDeleteTarget} />)}</div> : <EmptyState icon={hasFilters ? SearchX : undefined} title={hasFilters ? 'No movements found' : 'No movements yet'} description={hasFilters ? 'Try a different search or clear the filters to see your full ledger.' : 'Add your first movement to start the ledger.'} action={hasFilters ? { label: 'Clear filters', onClick: clearFilters } : { label: 'Add movement', onClick: openQuickAdd }} secondaryAction={hasFilters ? { label: 'Add movement', onClick: openQuickAdd } : undefined} />}
        </section>
        <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} />
        <ConfirmModal open={Boolean(deleteTarget)} title="Remove movement?" message="This movement will be hidden from your active list." confirmLabel="Remove" danger onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} />

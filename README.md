@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-The app starts with a persistent local development adapter when Supabase credentials are absent. Demo data is persisted in browser storage, and can be reset from Settings. The same domain model is used by the Supabase schema in `supabase/migrations/`.
+The app starts with a persistent local development adapter when Supabase credentials are absent. Local wallets and movements are persisted in browser storage, and can be cleared from Settings. The same domain model is used by the Supabase schema in `supabase/migrations/`.
 
 The production build is installable as a standalone web app on supported phones and browsers.
 
@@ -41,4 +41,4 @@ Import the repository as a Vite project and add `VITE_SUPABASE_URL` and `VITE_SU
 - `src/lib/ledger.ts` contains the pure balance and overdraft rules shared by tests and the adapter.
 - `src/data/` contains the local seed state and category catalog.
 - `src/pages/` contains the Overview, Wallets, Transactions, Dashboard, Settings, and email/PIN auth entry points.
-- Wallets accept user-provided logos and use a local initials fallback when no logo is attached.
+- Wallets accept user-provided logos with a saved display-size adjustment and use a local initials fallback when no logo is attached.

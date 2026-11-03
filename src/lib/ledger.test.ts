@@ -13,6 +13,7 @@ const wallet: Wallet = {
   cardTheme: 'emerald',
   logoUrl: null,
   logoName: null,
+  logoScale: 1,
   isArchived: false,
   createdAt: '2026-01-01T00:00:00.000Z',
 }

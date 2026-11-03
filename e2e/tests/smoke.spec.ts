@@ -16,6 +16,21 @@ test('shows the overview and its seeded balances', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'View history' })).toBeVisible()
 })
 
+test('filters the dashboard and downloads a dashboard image', async ({ page }) => {
+  await page.goto('/dashboard')
+
+  for (const label of ['This day', 'This week', 'This month', '90 days', 'All time']) {
+    await expect(page.getByRole('button', { name: label })).toBeVisible()
+  }
+  await page.getByRole('button', { name: 'This week' }).click()
+  await expect(page.getByText('This week').last()).toBeVisible()
+
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download dashboard image' }).click()
+  const download = await downloadPromise
+  expect(download.suggestedFilename()).toMatch(/^pisopiso-dashboard-\d{4}-\d{2}-\d{2}\.png$/)
+})
+
 test('can record an expense through the shared movement flow', async ({ page }) => {
   await page.goto('/overview')
   await page.getByRole('button', { name: 'Log something' }).click()
@@ -30,12 +45,31 @@ test('can record an expense through the shared movement flow', async ({ page }) 
   await expect(page.getByText('Neighborhood bakery')).toBeVisible()
 })
 
+test('shows a useful empty state when filters have no results', async ({ page }) => {
+  await page.goto('/transactions')
+  await page.getByPlaceholder('Search merchant, note, or category').fill('not-a-real-movement')
+
+  await expect(page.getByRole('heading', { name: 'No movements found' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Clear filters' })).toBeVisible()
+  await page.getByRole('button', { name: 'Clear filters' }).click()
+  await expect(page.getByText('Monthly salary')).toBeVisible()
+})
+
 test('can create a wallet with a custom card style and open its details', async ({ page }) => {
   await page.goto('/wallets')
   await expect(page.getByRole('heading', { name: 'Wallets' }).first()).toBeVisible()
   await page.getByRole('button', { name: 'Add wallet' }).first().click()
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Wallet name').fill('Weekend cash')
+  await dialog.locator('input[type="file"]').first().setInputFiles({
+    name: 'weekend-logo.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
+  })
+  const logoSize = dialog.getByRole('slider', { name: 'Logo size' })
+  await expect(logoSize).toBeVisible()
+  await logoSize.fill('1.25')
+  await expect(dialog.getByText('125%')).toBeVisible()
   await dialog.getByRole('radio', { name: 'Ocean' }).click()
   await dialog.getByRole('button', { name: 'Add wallet' }).click()
   await expect(page.getByRole('link', { name: /Weekend cash/ })).toBeVisible()
@@ -71,4 +105,13 @@ test('keeps demo access explicit', async ({ page }) => {
   await page.getByRole('button', { name: 'Use demo space' }).click()
   await expect(page).toHaveURL(/\/overview$/)
   await expect(page.getByRole('heading', { name: 'Overview' }).first()).toBeVisible()
+})
+
+test('can start fresh without changing remote data', async ({ page }) => {
+  await page.goto('/settings')
+  await page.getByRole('button', { name: 'Start fresh' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('heading', { name: 'Start fresh?' })).toBeVisible()
+  await dialog.getByRole('button', { name: 'Start fresh' }).click()
+  await expect(page.getByText('0 active movements')).toBeVisible()
 })

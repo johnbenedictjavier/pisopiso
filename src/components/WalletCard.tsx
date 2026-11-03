@@ -26,7 +26,7 @@ export default function WalletCard({ wallet, featured = false, onEdit, onArchive
     <article className={`wallet-card wallet-card-theme-${wallet.cardTheme} ${featured ? 'wallet-card-featured' : ''} ${interactive ? 'wallet-card-interactive' : ''}`} style={{ '--wallet-accent': wallet.color } as React.CSSProperties} role={interactive ? 'link' : undefined} tabIndex={interactive ? 0 : undefined} onClick={() => interactive && navigate(`/wallets/${wallet.id}`)} onKeyDown={(event) => { if (interactive && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); navigate(`/wallets/${wallet.id}`) } }}>
       <span className="wallet-card-shine" aria-hidden="true" />
       <div className="wallet-card-top">
-        <WalletLogo logoUrl={wallet.logoUrl} name={wallet.name} color={wallet.color} size={featured ? 'large' : 'medium'} />
+        <WalletLogo logoUrl={wallet.logoUrl} logoScale={wallet.logoScale} name={wallet.name} color={wallet.color} size={featured ? 'large' : 'medium'} />
         {hasActions ? (
           <div className="wallet-card-actions">
             <button className="row-action" type="button" aria-label={`Wallet actions for ${wallet.name}`} aria-haspopup="menu" aria-expanded={menuOpen} onClick={(event) => { event.stopPropagation(); setMenuOpen((current) => !current) }} onKeyDown={(event) => event.stopPropagation()}><MoreHorizontal size={18} /></button>

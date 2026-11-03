@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { createSeedState } from '../data/seed'
+import { createEmptyState } from '../data/seed'
 import { createId } from '../lib/ids'
 import { isCurrentMonth } from '../lib/dates'
 import { parseAmountToCents } from '../lib/money'
@@ -35,7 +35,7 @@ interface FinanceContextValue {
   updateTheme: (theme: AppState['profile']['theme']) => void
   updateDisplayName: (displayName: string) => void
   updateAvatar: (avatarUrl: string | null, avatarName: string | null) => void
-  resetDemo: () => void
+  startFresh: () => void
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null)
@@ -164,6 +164,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       cardTheme: input.cardTheme,
       logoUrl: input.logoUrl,
       logoName: input.logoName,
+      logoScale: input.logoScale,
       isArchived: false,
       createdAt: new Date().toISOString(),
     }
@@ -185,6 +186,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         cardTheme: input.cardTheme,
         logoUrl: input.logoUrl,
         logoName: input.logoName,
+        logoScale: input.logoScale,
       } : wallet),
     }))
   }
@@ -223,8 +225,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setState((current) => ({ ...current, profile: { ...current.profile, avatarUrl, avatarName } }))
   }
 
-  function resetDemo(): void {
-    setState(createSeedState())
+  function startFresh(): void {
+    setState(createEmptyState())
   }
 
   const value: FinanceContextValue = {
@@ -243,7 +245,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     updateTheme,
     updateDisplayName,
     updateAvatar,
-    resetDemo,
+    startFresh,
   }
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>

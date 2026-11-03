@@ -2,10 +2,11 @@ interface WalletLogoProps {
   name?: string
   color?: string
   logoUrl?: string | null
+  logoScale?: number
   size?: 'small' | 'medium' | 'large'
 }
 
-export default function WalletLogo({ name, color, logoUrl, size = 'medium' }: WalletLogoProps) {
+export default function WalletLogo({ name, color, logoUrl, logoScale = 1, size = 'medium' }: WalletLogoProps) {
   const label = name ?? 'Wallet'
   const initials = label
     .replace(/\(.*?\)/g, '')
@@ -24,7 +25,7 @@ export default function WalletLogo({ name, color, logoUrl, size = 'medium' }: Wa
       aria-label={`${label} logo`}
       title={label}
     >
-      {logoUrl ? <img src={logoUrl} alt="" width={36} height={36} /> : initials || 'P'}
+      {logoUrl ? <img src={logoUrl} alt="" width={36} height={36} style={{ transform: `scale(${logoScale})` }} /> : initials || 'P'}
     </span>
   )
 }

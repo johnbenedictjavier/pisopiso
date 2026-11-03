@@ -3,11 +3,40 @@ import { BarChart3, CalendarRange, Download, PieChart as PieChartIcon, TrendingD
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useFinance } from '../context/FinanceContext'
 import { formatCurrency } from '../lib/money'
-import { downloadTransactionsCsv } from '../lib/csv'
-import { isCurrentMonth } from '../lib/dates'
+import { downloadDashboardImage } from '../lib/dashboardImage'
 import { useShell } from '../layout/AppShell'
 
 const chartColors = ['#5f8068', '#d69570', '#687cb0', '#b47d9f', '#c09649', '#71918b', '#9a7967']
+type DashboardPeriod = 'day' | 'week' | 'month' | '90' | 'all'
+const periodOptions: Array<{ value: DashboardPeriod; label: string }> = [
+  { value: 'day', label: 'This day' },
+  { value: 'week', label: 'This week' },
+  { value: 'month', label: 'This month' },
+  { value: '90', label: '90 days' },
+  { value: 'all', label: 'All time' },
+]
+
+function getPeriodStart(period: DashboardPeriod): Date | null {
+  if (period === 'all') return null
+  const start = new Date()
+  if (period === 'day') {
+    start.setHours(0, 0, 0, 0)
+    return start
+  }
+  if (period === 'week') {
+    const daysSinceMonday = (start.getDay() + 6) % 7
+    start.setDate(start.getDate() - daysSinceMonday)
+    start.setHours(0, 0, 0, 0)
+    return start
+  }
+  if (period === 'month') {
+    start.setDate(1)
+    start.setHours(0, 0, 0, 0)
+    return start
+  }
+  start.setDate(start.getDate() - 90)
+  return start
+}
 
 function DashboardTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string }>; label?: string }) {
   if (!active || !payload?.length) return null
@@ -17,13 +46,11 @@ function DashboardTooltip({ active, payload, label }: { active?: boolean; payloa
 export default function DashboardPage() {
   const { state, transactions } = useFinance()
   const { notify } = useShell()
-  const [period, setPeriod] = useState<'month' | '90' | 'all'>('month')
+  const [period, setPeriod] = useState<DashboardPeriod>('month')
+  const periodLabel = periodOptions.find((item) => item.value === period)?.label ?? 'This month'
   const filteredTransactions = useMemo(() => {
-    if (period === 'all') return transactions
-    const days = period === 'month' ? 31 : 90
-    const cutoff = new Date()
-    cutoff.setDate(cutoff.getDate() - days)
-    return transactions.filter((transaction) => new Date(transaction.occurredAt) >= cutoff)
+    const periodStart = getPeriodStart(period)
+    return periodStart ? transactions.filter((transaction) => new Date(transaction.occurredAt) >= periodStart) : transactions
   }, [period, transactions])
   const expenses = filteredTransactions.filter((transaction) => transaction.type === 'expense')
   const income = filteredTransactions.filter((transaction) => transaction.type === 'income')
@@ -53,15 +80,32 @@ export default function DashboardPage() {
     })
   }, [transactions])
 
+  async function handleDownload(): Promise<void> {
+    try {
+      await downloadDashboardImage({
+        periodLabel,
+        generatedAt: new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium' }).format(new Date()),
+        incomeCents: incomeTotal,
+        expenseCents: expenseTotal,
+        savingsRate: incomeTotal ? `${Math.max(0, Math.round(((incomeTotal - expenseTotal) / incomeTotal) * 100))}%` : '—',
+        monthlyData: monthlyData.map((item) => ({ label: item.label, income: item.Income, expenses: item.Expenses })),
+        categoryData,
+      })
+      notify('Dashboard image downloaded.')
+    } catch {
+      notify('Could not download the dashboard image.')
+    }
+  }
+
   return (
     <div className="page-stack">
-       <section className="page-intro-row"><div><h2 className="page-section-title">Your financial dashboard</h2></div><div className="intro-actions"><div className="period-picker"><CalendarRange size={16} />{(['month', '90', 'all'] as const).map((item) => <button key={item} className={period === item ? 'period-active' : ''} type="button" onClick={() => setPeriod(item)}>{item === 'month' ? 'This month' : item === '90' ? '90 days' : 'All time'}</button>)}</div><button className="button button-secondary" type="button" onClick={() => { downloadTransactionsCsv(filteredTransactions, state.wallets); notify('Dashboard data exported.') }}><Download size={16} /> Export</button></div></section>
+       <section className="page-intro-row"><div><h2 className="page-section-title">Your financial dashboard</h2></div><div className="dashboard-actions"><div className="period-picker dashboard-period-picker"><CalendarRange size={16} />{periodOptions.map((item) => <button key={item.value} className={period === item.value ? 'period-active' : ''} type="button" onClick={() => setPeriod(item.value)}>{item.label}</button>)}</div><button className="icon-button dashboard-download" type="button" aria-label="Download dashboard image" title="Download dashboard image" onClick={() => { void handleDownload() }}><Download size={17} /></button></div></section>
        <section className="metric-grid dashboard-metrics"><article className="dashboard-total-card"><span className="metric-icon metric-icon-sage"><TrendingUp size={18} /></span><div><span>Money in</span><strong>{formatCurrency(incomeTotal)}</strong><small>{income.length} movements</small></div></article><article className="dashboard-total-card"><span className="metric-icon metric-icon-amber"><TrendingDown size={18} /></span><div><span>Money out</span><strong>{formatCurrency(expenseTotal)}</strong><small>{expenses.length} movements</small></div></article><article className="dashboard-total-card"><span className="metric-icon metric-icon-blue"><BarChart3 size={18} /></span><div><span>Savings rate</span><strong>{incomeTotal ? `${Math.max(0, Math.round(((incomeTotal - expenseTotal) / incomeTotal) * 100))}%` : '—'}</strong><small>Income kept</small></div></article></section>
        <section className="dashboard-grid">
          <article className="panel dashboard-card dashboard-card-large"><div className="card-heading-row"><div><span className="section-kicker">Six-month view</span><h2>Income vs. expenses</h2></div><span className="chart-legend"><i className="dot dot-income" /> Income <i className="dot dot-expenses" /> Expenses</span></div><div className="dashboard-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={monthlyData} margin={{ top: 12, right: 4, left: -25, bottom: 0 }}><CartesianGrid vertical={false} stroke="var(--line)" /><XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--muted)', fontSize: 11 }} /><YAxis axisLine={false} tickLine={false} tick={false} /><Tooltip content={<DashboardTooltip />} /><Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ display: 'none' }} /><Bar dataKey="Income" fill="#5f8068" radius={[5, 5, 0, 0]} barSize={13} /><Bar dataKey="Expenses" fill="#d69570" radius={[5, 5, 0, 0]} barSize={13} /></BarChart></ResponsiveContainer></div></article>
          <article className="panel dashboard-card"><div className="card-heading-row"><div><span className="section-kicker">Spending</span><h2>Where it went</h2></div><PieChartIcon size={19} className="muted-icon" /></div>{categoryData.length ? <><div className="donut-wrap"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={categoryData} dataKey="amount" nameKey="name" innerRadius="64%" outerRadius="88%" paddingAngle={3} stroke="none">{categoryData.map((item) => <Cell key={item.name} fill={item.color} />)}</Pie><Tooltip formatter={(value) => formatCurrency(Number(value ?? 0))} /></PieChart></ResponsiveContainer><div className="donut-center"><strong>{formatCurrency(expenseTotal)}</strong><span>Total out</span></div></div><div className="category-legend">{categoryData.slice(0, 5).map((item) => <div key={item.name}><span><i style={{ backgroundColor: item.color }} />{item.name}</span><strong>{formatCurrency(item.amount)}</strong></div>)}</div></> : <p className="muted-copy">Add expenses to see your spending mix.</p>}</article>
       </section>
-       <div className="dashboard-footnote"><span>{filteredTransactions.length} movements</span><span>{period === 'month' && isCurrentMonth(new Date().toISOString()) ? 'Current month' : 'Selected period'}</span></div>
+        <div className="dashboard-footnote"><span>{filteredTransactions.length} movements</span><span>{periodLabel}</span></div>
     </div>
   )
 }
