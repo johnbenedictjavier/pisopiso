@@ -29,6 +29,7 @@ function rememberEmail(email: string): void {
 function describeAuthError(message: string, mode: AuthMode): string {
   const normalized = message.toLowerCase()
   if (mode === 'sign-up' && /already|registered|exists/.test(normalized)) return 'An account with this email already exists. Try signing in.'
+  if (/invalid api key|invalid api_key/.test(normalized)) return 'Supabase rejected the API key. Copy the publishable key from the same Supabase project into VITE_SUPABASE_PUBLISHABLE_KEY.'
   if (/email signups are disabled|signup is disabled/.test(normalized)) return 'Email signup is disabled in Supabase. Enable the Email provider to create an account.'
   if (/rate limit|too many requests/.test(normalized)) return 'Too many signup attempts. Wait a moment and try again.'
   if (/error sending confirmation|sending.*email|smtp/.test(normalized)) return 'The account was not created because the confirmation email could not be sent. Check Supabase email settings.'

@@ -29,13 +29,13 @@ npm run test:e2e
 1. Create a Supabase project.
 2. Apply all files in `supabase/migrations/` in filename order. The schema uses `piso_account`, `piso_wallet`, `piso_category`, `piso_transaction`, and `piso_transaction_attachment`.
 3. Apply `supabase/seed.sql` for the category defaults.
-4. Copy `.env.example` to `.env.local` and add the public project URL and anon key.
+4. Copy `.env.example` to `.env.local` and add the public project URL and publishable key. Legacy projects may use the JWT anon key variable instead.
 
 The migration enables row-level security for profile-owned records, creates private `receipts` and `wallet-logos` buckets, and exposes `create_wallet_transfer` for atomic paired ledger entries. Never put a service-role key in a `VITE_` variable or in browser code.
 
 ## Vercel
 
-Import the repository as a Vite project and add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` for Preview and Production environments. `vercel.json` rewrites client-side routes to `index.html` so wallet detail URLs work on direct access.
+Import the repository as a Vite project and add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` for Preview and Production environments. `vercel.json` rewrites client-side routes to `index.html` so wallet detail URLs work on direct access.
 
 ## Product structure
 
