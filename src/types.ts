@@ -22,6 +22,8 @@ export interface Profile {
   email: string
   theme: Theme
   currency: 'PHP'
+  avatarUrl: string | null
+  avatarName: string | null
 }
 
 export interface Wallet {
@@ -103,6 +105,8 @@ export interface AddWalletInput {
   logoUrl: string | null
   logoName: string | null
 }
+
+export type UpdateWalletInput = AddWalletInput
 
 export const walletTypeLabels: Record<WalletType, string> = {
   bank: 'Traditional bank',

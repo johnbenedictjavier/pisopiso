@@ -18,7 +18,7 @@ export default function TransactionDetailModal({ transaction, onClose }: Transac
   const relatedWallet = transaction?.relatedWalletId ? getWallet(transaction.relatedWalletId) : undefined
 
   return (
-    <Modal open={Boolean(transaction)} title={transaction?.merchant || 'Movement details'} description="A closer look at this part of your money story." onClose={onClose} size="medium">
+    <Modal open={Boolean(transaction)} title={transaction?.merchant || 'Movement details'} description="Transaction details." onClose={onClose} size="medium">
       {transaction && (
         <div className="transaction-detail-stack">
           <div className={`transaction-detail-hero transaction-detail-${transaction.type}`}>

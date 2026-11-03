@@ -127,7 +127,7 @@ export default function TransactionModal({ open, onClose, onSuccess }: Transacti
         receiptName: receipt?.name ?? null,
         receiptUrl,
       })
-      onSuccess(`${values.type === 'expense' ? 'Expense' : 'Income'} added to your story.`)
+       onSuccess(`${values.type === 'expense' ? 'Expense' : 'Income'} added.`)
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Could not save this movement.')
     }
@@ -157,7 +157,7 @@ export default function TransactionModal({ open, onClose, onSuccess }: Transacti
   const visibleCategories = state.categories.filter((category) => category.type === tab || category.type === 'both')
 
   return (
-    <Modal open={open} title="Add a movement" description="Keep the small details. They make the big picture useful." onClose={onClose} size="large">
+    <Modal open={open} title="Add a movement" description="Record a transaction with the details you want to remember." onClose={onClose} size="large">
       <div className="movement-tabs" role="tablist" aria-label="Movement type">
         {(['expense', 'income', 'transfer'] as MovementTab[]).map((item) => (
           <button key={item} className={`movement-tab ${tab === item ? 'movement-tab-active' : ''}`} type="button" role="tab" aria-selected={tab === item} onClick={() => changeTab(item)}>

@@ -21,6 +21,12 @@ function migrateAppState(value: Partial<AppState>): AppState {
   return {
     ...seed,
     ...value,
+    profile: {
+      ...seed.profile,
+      ...(value.profile ?? {}),
+      avatarUrl: value.profile?.avatarUrl ?? null,
+      avatarName: value.profile?.avatarName ?? null,
+    },
     wallets: (value.wallets ?? seed.wallets).map((wallet) => ({
       ...wallet,
       cardTheme: wallet.cardTheme ?? 'emerald',

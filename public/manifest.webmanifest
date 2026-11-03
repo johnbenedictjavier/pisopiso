@@ -1,0 +1,18 @@
+{
+  "name": "PisoPiso",
+  "short_name": "PisoPiso",
+  "description": "A calm space for every peso.",
+  "start_url": "/overview",
+  "display": "standalone",
+  "background_color": "#f4f7f3",
+  "theme_color": "#2f4d3a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/pisopisologo.png",
+      "sizes": "1440x1440",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

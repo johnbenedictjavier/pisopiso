@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, ImagePlus, Plus, Trash2, WalletCards } from 'lucide-react'
+import { Camera, Check, ImagePlus, Plus, Trash2, WalletCards } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Modal from './Modal'
@@ -7,18 +7,19 @@ import { useFinance } from '../context/FinanceContext'
 import { blobToDataUrl, compressImage, validateImage } from '../lib/images'
 import { parseAmountToCents } from '../lib/money'
 import { walletFormSchema, type WalletFormValues } from '../lib/validation'
-import { walletCardThemes, walletTypeLabels } from '../types'
+import { walletCardThemes, walletTypeLabels, type Wallet } from '../types'
 
 interface WalletModalProps {
   open: boolean
   onClose: () => void
   onSuccess: (message: string) => void
+  wallet?: Wallet | null
 }
 
 const walletColors = ['#5f8068', '#3f7897', '#a76b67', '#7a6aa9', '#b28647', '#5e7791']
 
-export default function WalletModal({ open, onClose, onSuccess }: WalletModalProps) {
-  const { addWallet } = useFinance()
+export default function WalletModal({ open, onClose, onSuccess, wallet = null }: WalletModalProps) {
+  const { addWallet, updateWallet } = useFinance()
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
@@ -44,15 +45,18 @@ export default function WalletModal({ open, onClose, onSuccess }: WalletModalPro
     setLogoError(null)
     setLogoUrl(null)
     setLogoName(null)
+    const openingBalance = wallet ? (wallet.openingBalanceCents / 100).toFixed(2).replace(/\.00$/, '') : '0'
     form.reset({
-      name: '',
-      type: 'bank',
-      openingBalance: '0',
-      allowOverdraft: false,
-      color: walletColors[Math.floor(Math.random() * walletColors.length)],
-      cardTheme: 'emerald',
+      name: wallet?.name ?? '',
+      type: wallet?.type ?? 'bank',
+      openingBalance,
+      allowOverdraft: wallet?.allowOverdraft ?? false,
+      color: wallet?.color ?? walletColors[Math.floor(Math.random() * walletColors.length)],
+      cardTheme: wallet?.cardTheme ?? 'emerald',
     })
-  }, [open])
+    setLogoUrl(wallet?.logoUrl ?? null)
+    setLogoName(wallet?.logoName ?? null)
+  }, [open, wallet])
 
   async function handleLogo(file: File | undefined): Promise<void> {
     if (!file) return
@@ -81,8 +85,14 @@ export default function WalletModal({ open, onClose, onSuccess }: WalletModalPro
       return
     }
     try {
-      addWallet({ ...values, openingBalanceCents, logoUrl, logoName })
-      onSuccess(`${values.name} is ready to track.`)
+      const input = { ...values, openingBalanceCents, logoUrl, logoName }
+      if (wallet) {
+        updateWallet(wallet.id, input)
+        onSuccess(`${values.name} was updated.`)
+      } else {
+        addWallet(input)
+        onSuccess(`${values.name} was added.`)
+      }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Could not create this wallet.')
     }
@@ -91,7 +101,7 @@ export default function WalletModal({ open, onClose, onSuccess }: WalletModalPro
   const selectedTheme = form.watch('cardTheme')
 
   return (
-    <Modal open={open} title="Add a wallet" description="Give every account a place, a look, and a little personality." onClose={onClose} size="large">
+    <Modal open={open} title={wallet ? 'Edit wallet' : 'Add a wallet'} description={wallet ? 'Update the details on this wallet.' : 'Set up a wallet in a few quick steps.'} onClose={onClose} size="large">
       <form className="form-stack" onSubmit={form.handleSubmit(handleSubmit)}>
         <div className="wallet-logo-field">
           <div className="wallet-logo-preview" style={{ '--wallet-accent': form.watch('color') } as React.CSSProperties}>
@@ -140,7 +150,7 @@ export default function WalletModal({ open, onClose, onSuccess }: WalletModalPro
         {submitError && <div className="form-alert">{submitError}</div>}
         <div className="modal-actions">
           <button className="button button-quiet" type="button" onClick={onClose}>Cancel</button>
-          <button className="button button-primary" type="submit"><Plus size={17} /> Add wallet</button>
+          <button className="button button-primary" type="submit">{wallet ? <><Check size={17} /> Save changes</> : <><Plus size={17} /> Add wallet</>}</button>
         </div>
       </form>
     </Modal>

@@ -44,7 +44,7 @@ export default function OverviewPage() {
     <div className="page-stack">
       <section className="overview-intro">
         <div>
-          <p className="lead-copy">A calm place to see what came in, what went out, and what is next.</p>
+          <span className="section-kicker">Today</span><h2 className="page-section-title">Money at a glance</h2>
         </div>
         <button className="button button-secondary intro-action" type="button" onClick={openQuickAdd}><Plus size={16} /> Log something</button>
       </section>
@@ -87,7 +87,7 @@ export default function OverviewPage() {
         </aside>
       </section>
 
-      <section className="quiet-banner"><BarChart3 size={18} /><span>Want a deeper look? Your reports are ready when you are.</span><Link to="/reports">Explore reports <ChevronRight size={16} /></Link></section>
+       <section className="quiet-banner"><BarChart3 size={18} /><span>See the bigger picture across your money.</span><Link to="/dashboard">Open dashboard <ChevronRight size={16} /></Link></section>
       <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} />
     </div>
   )

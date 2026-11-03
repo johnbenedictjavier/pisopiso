@@ -120,6 +120,8 @@ export function createSeedState(): AppState {
       email: 'mika@pisopiso.local',
       theme: 'light',
       currency: 'PHP',
+      avatarUrl: null,
+      avatarName: null,
     },
     wallets,
     categories: categoryCatalog,

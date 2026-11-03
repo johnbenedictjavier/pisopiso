@@ -7,7 +7,7 @@ const OverviewPage = lazy(() => import('./pages/OverviewPage'))
 const WalletsPage = lazy(() => import('./pages/WalletsPage'))
 const WalletDetailPage = lazy(() => import('./pages/WalletDetailPage'))
 const TransactionsPage = lazy(() => import('./pages/TransactionsPage'))
-const ReportsPage = lazy(() => import('./pages/ReportsPage'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 
 function PageLoader() {
@@ -31,7 +31,8 @@ export default function App() {
             <Route path="wallets" element={<WalletsPage />} />
             <Route path="wallets/:walletId" element={<WalletDetailPage />} />
             <Route path="transactions" element={<TransactionsPage />} />
-            <Route path="reports" element={<ReportsPage />} />
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="reports" element={<Navigate to="/dashboard" replace />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/overview" replace />} />

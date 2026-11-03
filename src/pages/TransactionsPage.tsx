@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Download, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react'
 import EmptyState from '../components/EmptyState'
+import ConfirmModal from '../components/ConfirmModal'
 import TransactionRow from '../components/TransactionRow'
 import TransactionDetailModal from '../components/TransactionDetailModal'
 import { useFinance } from '../context/FinanceContext'
@@ -18,6 +19,7 @@ export default function TransactionsPage() {
   const [filter, setFilter] = useState<FilterType>('all')
   const [walletFilter, setWalletFilter] = useState('all')
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
 
   const filteredTransactions = useMemo(() => transactions.filter((transaction) => {
     const matchesType = filter === 'all' || transaction.type === filter
@@ -27,11 +29,11 @@ export default function TransactionsPage() {
     return matchesType && matchesWallet && text.includes(query.toLowerCase())
   }), [filter, query, state.categories, transactions, walletFilter])
 
-  function deleteTransaction(transaction: Transaction): void {
-    if (window.confirm('Remove this movement from your active history? Its record will remain preserved in the ledger.')) {
-      removeTransaction(transaction.id)
-      notify('Movement removed from active history.')
-    }
+  function confirmDelete(): void {
+    if (!deleteTarget) return
+    removeTransaction(deleteTarget.id)
+    notify('Movement removed.')
+    setDeleteTarget(null)
   }
 
   const expenseTotal = filteredTransactions.filter((item) => item.type === 'expense').reduce((sum, item) => sum + item.amountCents, 0)
@@ -39,7 +41,7 @@ export default function TransactionsPage() {
 
   return (
     <div className="page-stack">
-      <section className="page-intro-row"><div><p className="lead-copy">A searchable, honest record of where your money has been.</p></div><div className="intro-actions"><button className="button button-secondary" type="button" onClick={() => { downloadTransactionsCsv(filteredTransactions, state.wallets); notify('Your CSV export is ready.') }}><Download size={16} /> Export CSV</button><button className="button button-primary" type="button" onClick={openQuickAdd}><Plus size={17} /> Add movement</button></div></section>
+      <section className="page-intro-row"><div><span className="section-kicker">Ledger</span><h2 className="page-section-title">All movements</h2></div><div className="intro-actions"><button className="button button-secondary" type="button" onClick={() => { downloadTransactionsCsv(filteredTransactions, state.wallets); notify('Your CSV export is ready.') }}><Download size={16} /> Export CSV</button><button className="button button-primary" type="button" onClick={openQuickAdd}><Plus size={17} /> Add movement</button></div></section>
       <section className="transaction-overview"><div><span className="section-kicker">Showing {filteredTransactions.length} {filteredTransactions.length === 1 ? 'movement' : 'movements'}</span><strong>{formatCurrency(incomeTotal - expenseTotal)}</strong><small>Net in the current view</small></div><div className="transaction-totals"><span><i className="dot dot-income" /> In {formatCurrency(incomeTotal)}</span><span><i className="dot dot-expenses" /> Out {formatCurrency(expenseTotal)}</span></div></section>
       <section className="panel transactions-panel">
         <div className="filter-toolbar">
@@ -48,9 +50,10 @@ export default function TransactionsPage() {
           <select className="filter-select" value={walletFilter} onChange={(event) => setWalletFilter(event.target.value)} aria-label="Filter by wallet"><option value="all">All wallets</option>{state.wallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}</select>
           <button className="icon-button filter-button" type="button" aria-label="More filters"><SlidersHorizontal size={18} /><Filter size={13} /></button>
         </div>
-         {filteredTransactions.length ? <div className="transaction-list transaction-list-full">{filteredTransactions.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} onOpen={setSelectedTransaction} onDelete={deleteTransaction} />)}</div> : <EmptyState title="Nothing matches yet" description="Try another search or log a new movement to get your story started." action={{ label: 'Add movement', onClick: openQuickAdd }} />}
+         {filteredTransactions.length ? <div className="transaction-list transaction-list-full">{filteredTransactions.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} onOpen={setSelectedTransaction} onDelete={setDeleteTarget} />)}</div> : <EmptyState title="Nothing matches yet" description="Try another search or add a movement." action={{ label: 'Add movement', onClick: openQuickAdd }} />}
        </section>
        <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} />
+       <ConfirmModal open={Boolean(deleteTarget)} title="Remove movement?" message="This movement will be hidden from your active list." confirmLabel="Remove" danger onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} />
      </div>
   )
 }

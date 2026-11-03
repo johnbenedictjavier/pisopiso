@@ -1,6 +1,6 @@
 # PisoPiso
 
-PisoPiso is a manual Philippine peso tracker built around one idea: every peso has a place. It is intentionally not a banking integration. It never asks for bank passwords, PINs, or OTPs.
+PisoPiso is a manual Philippine peso tracker built around one idea: every peso has a place. It is intentionally not a banking integration. It never asks for bank passwords, bank PINs, or OTPs.
 
 ## Run locally
 
@@ -10,6 +10,8 @@ npm run dev
 ```
 
 The app starts with a persistent local development adapter when Supabase credentials are absent. Demo data is persisted in browser storage, and can be reset from Settings. The same domain model is used by the Supabase schema in `supabase/migrations/`.
+
+The production build is installable as a standalone web app on supported phones and browsers.
 
 ## Checks
 
@@ -38,5 +40,5 @@ Import the repository as a Vite project and add `VITE_SUPABASE_URL` and `VITE_SU
 - `src/context/FinanceContext.tsx` contains the persistent local adapter and the user-facing ledger operations.
 - `src/lib/ledger.ts` contains the pure balance and overdraft rules shared by tests and the adapter.
 - `src/data/` contains the local seed state and category catalog.
-- `src/pages/` contains the Overview, Wallets, Transactions, Reports, Settings, and local auth entry points.
+- `src/pages/` contains the Overview, Wallets, Transactions, Dashboard, Settings, and email/PIN auth entry points.
 - Wallets accept user-provided logos and use a local initials fallback when no logo is attached.

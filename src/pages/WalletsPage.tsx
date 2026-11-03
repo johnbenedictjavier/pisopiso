@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Archive, ChevronRight, Plus, ShieldCheck, WalletCards } from 'lucide-react'
-import { useFinance } from '../context/FinanceContext'
-import { formatCurrency } from '../lib/money'
+import { Plus, WalletCards } from 'lucide-react'
+import ConfirmModal from '../components/ConfirmModal'
+import EmptyState from '../components/EmptyState'
 import WalletCard from '../components/WalletCard'
 import WalletModal from '../components/WalletModal'
-import EmptyState from '../components/EmptyState'
+import { useFinance } from '../context/FinanceContext'
+import { formatCurrency } from '../lib/money'
 import { useShell } from '../layout/AppShell'
 import type { Wallet } from '../types'
 
@@ -12,23 +13,39 @@ export default function WalletsPage() {
   const { activeWallets, getWalletBalance, archiveWallet } = useFinance()
   const { notify } = useShell()
   const [modalOpen, setModalOpen] = useState(false)
-
+  const [editingWallet, setEditingWallet] = useState<Wallet | null>(null)
+  const [archiveTarget, setArchiveTarget] = useState<Wallet | null>(null)
   const total = activeWallets.reduce((sum, wallet) => sum + getWalletBalance(wallet.id), 0)
 
-  function archive(wallet: Wallet): void {
-    if (window.confirm(`Archive ${wallet.name}? Its history will stay safe, but it will no longer accept new movements.`)) {
-      archiveWallet(wallet.id)
-      notify(`${wallet.name} was archived.`)
-    }
+  function openAdd(): void {
+    setEditingWallet(null)
+    setModalOpen(true)
+  }
+
+  function openEdit(wallet: Wallet): void {
+    setEditingWallet(wallet)
+    setModalOpen(true)
+  }
+
+  function closeModal(): void {
+    setModalOpen(false)
+    setEditingWallet(null)
+  }
+
+  function confirmArchive(): void {
+    if (!archiveTarget) return
+    archiveWallet(archiveTarget.id)
+    notify(`${archiveTarget.name} was archived.`)
+    setArchiveTarget(null)
   }
 
   return (
     <div className="page-stack">
-      <section className="page-intro-row"><div><p className="lead-copy">A wallet can be a bank account, a little cash envelope, or a future you are building.</p></div><button className="button button-primary" type="button" onClick={() => setModalOpen(true)}><Plus size={17} /> Add wallet</button></section>
-      <section className="wallet-summary-strip"><div><span className="section-kicker">Across {activeWallets.length} active {activeWallets.length === 1 ? 'wallet' : 'wallets'}</span><strong>{formatCurrency(total)}</strong></div><div className="wallet-summary-note"><ShieldCheck size={18} /><span>Protected by your own rules<br /><small>Overdrafts are off by default</small></span></div></section>
-      {activeWallets.length ? <section className="wallets-page-grid">{activeWallets.map((wallet) => <WalletCard key={wallet.id} wallet={wallet} featured onArchive={archive} />)}<button className="add-wallet-card add-wallet-card-large" type="button" onClick={() => setModalOpen(true)}><span><Plus size={20} /></span><strong>Add another wallet</strong><small>Keep every account in the same view</small></button></section> : <EmptyState title="Start with one wallet" description="Add the account, e-wallet, or cash envelope you use most." action={{ label: 'Add wallet', onClick: () => setModalOpen(true) }} />}
-      <section className="wallet-principles"><div><WalletCards size={19} /><strong>One view, no bank connections.</strong><p>PisoPiso is a manual tracker. Your passwords, PINs, and OTPs never belong here.</p></div><div><Archive size={19} /><strong>Archive without losing history.</strong><p>Old wallets stay in your story so your totals remain explainable.</p></div><ChevronRight size={18} className="principle-arrow" /></section>
-      <WalletModal open={modalOpen} onClose={() => setModalOpen(false)} onSuccess={(message) => { setModalOpen(false); notify(message) }} />
+      <section className="page-intro-row"><div><h2 className="page-section-title">Wallets</h2><span className="section-subtitle">{activeWallets.length} active</span></div><button className="button button-primary" type="button" onClick={openAdd}><Plus size={17} /> Add wallet</button></section>
+      <section className="wallet-summary-strip"><div><span className="section-kicker">Total balance</span><strong>{formatCurrency(total)}</strong></div><span className="wallet-summary-count"><WalletCards size={17} /> {activeWallets.length} active wallets</span></section>
+      {activeWallets.length ? <section className="wallets-page-grid">{activeWallets.map((wallet) => <WalletCard key={wallet.id} wallet={wallet} featured onEdit={openEdit} onArchive={setArchiveTarget} />)}<button className="add-wallet-card add-wallet-card-large" type="button" onClick={openAdd}><span><Plus size={20} /></span><strong>Add another wallet</strong><small>Keep every account in one view</small></button></section> : <EmptyState title="Add your first wallet" description="Start with a bank account, cash, or any account you track." action={{ label: 'Add wallet', onClick: openAdd }} />}
+      <WalletModal open={modalOpen} wallet={editingWallet} onClose={closeModal} onSuccess={(message) => { closeModal(); notify(message) }} />
+      <ConfirmModal open={Boolean(archiveTarget)} title="Archive wallet?" message={archiveTarget ? `${archiveTarget.name} will disappear from active wallets, but its history will stay available.` : ''} confirmLabel="Archive" danger onClose={() => setArchiveTarget(null)} onConfirm={confirmArchive} />
     </div>
   )
 }

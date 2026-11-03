@@ -12,6 +12,7 @@ import type {
   AppState,
   Transaction,
   TransactionType,
+  UpdateWalletInput,
   Wallet,
 } from '../types'
 
@@ -28,10 +29,12 @@ interface FinanceContextValue {
   addTransaction: (input: AddTransactionInput) => void
   addTransfer: (input: AddTransferInput) => void
   addWallet: (input: AddWalletInput) => void
+  updateWallet: (walletId: string, input: UpdateWalletInput) => void
   archiveWallet: (walletId: string) => void
   deleteTransaction: (transactionId: string) => void
   updateTheme: (theme: AppState['profile']['theme']) => void
   updateDisplayName: (displayName: string) => void
+  updateAvatar: (avatarUrl: string | null, avatarName: string | null) => void
   resetDemo: () => void
 }
 
@@ -167,6 +170,25 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setState((current) => ({ ...current, wallets: [wallet, ...current.wallets] }))
   }
 
+  function updateWallet(walletId: string, input: UpdateWalletInput): void {
+    const existing = state.wallets.find((wallet) => wallet.id === walletId)
+    if (!existing) throw new Error('Wallet not found.')
+    setState((current) => ({
+      ...current,
+      wallets: current.wallets.map((wallet) => wallet.id === walletId ? {
+        ...wallet,
+        name: input.name.trim(),
+        type: input.type,
+        openingBalanceCents: input.openingBalanceCents,
+        allowOverdraft: input.allowOverdraft,
+        color: input.color,
+        cardTheme: input.cardTheme,
+        logoUrl: input.logoUrl,
+        logoName: input.logoName,
+      } : wallet),
+    }))
+  }
+
   function archiveWallet(walletId: string): void {
     setState((current) => ({
       ...current,
@@ -197,6 +219,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setState((current) => ({ ...current, profile: { ...current.profile, displayName: displayName.trim() } }))
   }
 
+  function updateAvatar(avatarUrl: string | null, avatarName: string | null): void {
+    setState((current) => ({ ...current, profile: { ...current.profile, avatarUrl, avatarName } }))
+  }
+
   function resetDemo(): void {
     setState(createSeedState())
   }
@@ -211,10 +237,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     addTransaction,
     addTransfer,
     addWallet,
+    updateWallet,
     archiveWallet,
     deleteTransaction,
     updateTheme,
     updateDisplayName,
+    updateAvatar,
     resetDemo,
   }
 
