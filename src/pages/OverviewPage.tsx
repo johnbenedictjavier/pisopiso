@@ -9,6 +9,7 @@ import MetricCard from '../components/MetricCard'
 import AnimatedNumber from '../components/AnimatedNumber'
 import TransactionRow from '../components/TransactionRow'
 import TransactionDetailModal from '../components/TransactionDetailModal'
+import TransactionModal from '../components/TransactionModal'
 import WalletCard from '../components/WalletCard'
 import { useShell } from '../layout/AppShell'
 import type { Transaction } from '../types'
@@ -35,11 +36,17 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
 
 export default function OverviewPage() {
   const { state, activeWallets, transactions, totalBalanceCents, monthIncomeCents, monthExpensesCents, monthNetCents } = useFinance()
-  const { openQuickAdd } = useShell()
+  const { openQuickAdd, notify } = useShell()
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
+  const [editTarget, setEditTarget] = useState<Transaction | null>(null)
   const chartData = useMemo(() => buildCashflowData(transactions), [transactions])
   const topWallets = activeWallets.slice(0, 3)
   const firstName = state.profile.displayName.split(' ')[0]
+
+  function editTransaction(transaction: Transaction): void {
+    setSelectedTransaction(null)
+    setEditTarget(transaction)
+  }
 
   return (
     <div className="page-stack">
@@ -88,7 +95,8 @@ export default function OverviewPage() {
       </section>
 
        <section className="quiet-banner"><BarChart3 size={18} /><span>See the bigger picture across your money.</span><Link to="/dashboard">Open dashboard <ChevronRight size={16} /></Link></section>
-      <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} />
+       <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} onEdit={editTransaction} />
+       <TransactionModal open={Boolean(editTarget)} transaction={editTarget} onClose={() => setEditTarget(null)} onSuccess={(message) => { setEditTarget(null); notify(message) }} />
     </div>
   )
 }

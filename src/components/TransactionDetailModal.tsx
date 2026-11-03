@@ -1,4 +1,4 @@
-import { CalendarDays, Download, FileImage, FolderOpen, WalletCards } from 'lucide-react'
+import { CalendarDays, Download, FileImage, FolderOpen, Pencil, WalletCards } from 'lucide-react'
 import Modal from './Modal'
 import { useFinance, transactionSign, transactionTypeLabel } from '../context/FinanceContext'
 import { formatDate } from '../lib/dates'
@@ -9,9 +9,10 @@ import CategoryIcon from './CategoryIcon'
 interface TransactionDetailModalProps {
   transaction: Transaction | null
   onClose: () => void
+  onEdit?: (transaction: Transaction) => void
 }
 
-export default function TransactionDetailModal({ transaction, onClose }: TransactionDetailModalProps) {
+export default function TransactionDetailModal({ transaction, onClose, onEdit }: TransactionDetailModalProps) {
   const { state, getWallet } = useFinance()
   const category = transaction ? state.categories.find((item) => item.id === transaction.categoryId) : undefined
   const wallet = transaction ? getWallet(transaction.walletId) : undefined
@@ -35,9 +36,13 @@ export default function TransactionDetailModal({ transaction, onClose }: Transac
           <div className="receipt-detail">
             <div className="receipt-detail-heading"><span><FileImage size={17} /> Receipt</span>{transaction.receiptUrl && <a href={transaction.receiptUrl} download={transaction.receiptName ?? 'receipt.webp'} target="_blank" rel="noreferrer"><Download size={14} /> Open image</a>}</div>
             {transaction.receiptUrl ? <img src={transaction.receiptUrl} alt={transaction.receiptName ?? 'Uploaded receipt'} /> : <div className="receipt-empty"><FileImage size={20} /><span>No receipt attached to this movement.</span></div>}
-          </div>
-          <div className="transaction-detail-footnote">Recorded as {formatCurrency(transaction.amountCents)} · {transaction.receiptName ?? 'No attachment'}</div>
-        </div>
+           </div>
+           <div className="transaction-detail-footnote">Recorded as {formatCurrency(transaction.amountCents)} · {transaction.receiptName ?? 'No attachment'}</div>
+           <div className="modal-actions">
+             {onEdit && <button className="button button-secondary" type="button" onClick={() => onEdit(transaction)}><Pencil size={15} /> Edit movement</button>}
+             <button className="button button-quiet" type="button" onClick={onClose}>Close</button>
+           </div>
+         </div>
       )}
     </Modal>
   )

@@ -13,6 +13,8 @@ import type {
   AppState,
   Transaction,
   TransactionType,
+  UpdateTransactionInput,
+  UpdateTransferInput,
   UpdateWalletInput,
   Wallet,
 } from '../types'
@@ -29,6 +31,8 @@ interface FinanceContextValue {
   getWallet: (walletId: string) => Wallet | undefined
   addTransaction: (input: AddTransactionInput) => void
   addTransfer: (input: AddTransferInput) => void
+  updateTransaction: (transactionId: string, input: UpdateTransactionInput) => void
+  updateTransfer: (transferGroupId: string, input: UpdateTransferInput) => void
   addWallet: (input: AddWalletInput) => void
   updateWallet: (walletId: string, input: UpdateWalletInput) => void
   archiveWallet: (walletId: string) => void
@@ -159,6 +163,75 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setState((current) => ({ ...current, transactions: [outgoing, incoming, ...current.transactions] }))
   }
 
+  function updateTransaction(transactionId: string, input: UpdateTransactionInput): void {
+    if (input.amountCents <= 0) throw new Error('Amount must be greater than zero.')
+    const existing = state.transactions.find((transaction) => transaction.id === transactionId && !transaction.deletedAt)
+    if (!existing || existing.type === 'transfer') throw new Error('Transaction not found.')
+    const wallet = state.wallets.find((item) => item.id === input.walletId)
+    if (!wallet || (wallet.isArchived && wallet.id !== existing.walletId)) throw new Error('Choose an active wallet.')
+    if (input.type === 'expense' && !wallet.allowOverdraft) {
+      const transactionsWithoutExisting = state.transactions.filter((transaction) => transaction.id !== transactionId)
+      if (!canSpend(wallet, transactionsWithoutExisting, input.amountCents)) throw new Error('This expense would overdraw the wallet.')
+    }
+
+    const updated: Transaction = {
+      ...existing,
+      walletId: input.walletId,
+      type: input.type,
+      amountCents: input.amountCents,
+      categoryId: input.categoryId,
+      merchant: input.merchant.trim(),
+      note: input.note.trim(),
+      occurredAt: new Date(`${input.occurredAt}T12:00:00`).toISOString(),
+      transferGroupId: null,
+      transferDirection: null,
+      relatedWalletId: null,
+      receiptName: input.receiptName ?? null,
+      receiptUrl: input.receiptUrl ?? null,
+    }
+    setState((current) => ({
+      ...current,
+      transactions: current.transactions.map((transaction) => transaction.id === transactionId ? updated : transaction),
+    }))
+  }
+
+  function updateTransfer(transferGroupId: string, input: UpdateTransferInput): void {
+    if (!transferGroupId) throw new Error('Transfer not found.')
+    if (input.amountCents <= 0) throw new Error('Amount must be greater than zero.')
+    if (input.fromWalletId === input.toWalletId) throw new Error('Choose two different wallets.')
+    const group = state.transactions.filter((transaction) => transaction.transferGroupId === transferGroupId && !transaction.deletedAt)
+    const outgoing = group.find((transaction) => transaction.transferDirection === 'out')
+    const incoming = group.find((transaction) => transaction.transferDirection === 'in')
+    if (group.length !== 2 || !outgoing || !incoming) throw new Error('Transfer not found.')
+    const fromWallet = state.wallets.find((wallet) => wallet.id === input.fromWalletId)
+    const toWallet = state.wallets.find((wallet) => wallet.id === input.toWalletId)
+    if (!fromWallet || (fromWallet.isArchived && fromWallet.id !== outgoing.walletId) || !toWallet || (toWallet.isArchived && toWallet.id !== incoming.walletId)) {
+      throw new Error('Choose two active wallets.')
+    }
+    const transactionsWithoutTransfer = state.transactions.filter((transaction) => transaction.transferGroupId !== transferGroupId)
+    if (!canSpend(fromWallet, transactionsWithoutTransfer, input.amountCents)) {
+      throw new Error('The source wallet does not have enough available balance.')
+    }
+    const occurredAt = new Date(`${input.occurredAt}T12:00:00`).toISOString()
+    setState((current) => ({
+      ...current,
+      transactions: current.transactions.map((transaction) => {
+        if (transaction.transferGroupId !== transferGroupId) return transaction
+        const isOutgoing = transaction.transferDirection === 'out'
+        return {
+          ...transaction,
+          walletId: isOutgoing ? input.fromWalletId : input.toWalletId,
+          amountCents: input.amountCents,
+          note: input.note.trim(),
+          occurredAt,
+          categoryId: null,
+          merchant: 'Wallet transfer',
+          relatedWalletId: isOutgoing ? input.toWalletId : input.fromWalletId,
+        }
+      }),
+    }))
+  }
+
   function addWallet(input: AddWalletInput): void {
     const wallet: Wallet = {
       id: createId('wallet'),
@@ -273,6 +346,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     getWallet: (walletId) => state.wallets.find((wallet) => wallet.id === walletId),
     addTransaction,
     addTransfer,
+    updateTransaction,
+    updateTransfer,
     addWallet,
     updateWallet,
     archiveWallet,

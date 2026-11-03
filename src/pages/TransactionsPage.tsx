@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Download, Filter, Plus, Search, SearchX, SlidersHorizontal } from 'lucide-react'
 import EmptyState from '../components/EmptyState'
 import ConfirmModal from '../components/ConfirmModal'
 import TransactionRow from '../components/TransactionRow'
 import TransactionDetailModal from '../components/TransactionDetailModal'
+import TransactionModal from '../components/TransactionModal'
+import TransactionPagination, { TRANSACTION_PAGE_SIZE } from '../components/TransactionPagination'
 import AnimatedNumber from '../components/AnimatedNumber'
 import { useFinance } from '../context/FinanceContext'
 import { downloadTransactionsCsv } from '../lib/csv'
@@ -20,7 +22,9 @@ export default function TransactionsPage() {
   const [filter, setFilter] = useState<FilterType>('all')
   const [walletFilter, setWalletFilter] = useState('all')
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
+  const [editTarget, setEditTarget] = useState<Transaction | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
+  const [page, setPage] = useState(0)
 
   const filteredTransactions = useMemo(() => transactions.filter((transaction) => {
     const matchesType = filter === 'all' || transaction.type === filter
@@ -29,6 +33,15 @@ export default function TransactionsPage() {
     const text = `${transaction.merchant} ${transaction.note} ${category?.name ?? ''}`.toLowerCase()
     return matchesType && matchesWallet && text.includes(query.toLowerCase())
   }), [filter, query, state.categories, transactions, walletFilter])
+
+  useEffect(() => {
+    setPage(0)
+  }, [filter, query, walletFilter])
+
+  useEffect(() => {
+    const lastPage = Math.max(0, Math.ceil(filteredTransactions.length / TRANSACTION_PAGE_SIZE) - 1)
+    setPage((current) => Math.min(current, lastPage))
+  }, [filteredTransactions.length])
 
   function confirmDelete(): void {
     if (!deleteTarget) return
@@ -43,9 +56,15 @@ export default function TransactionsPage() {
     setWalletFilter('all')
   }
 
+  function editTransaction(transaction: Transaction): void {
+    setSelectedTransaction(null)
+    setEditTarget(transaction)
+  }
+
   const expenseTotal = filteredTransactions.filter((item) => item.type === 'expense').reduce((sum, item) => sum + item.amountCents, 0)
   const incomeTotal = filteredTransactions.filter((item) => item.type === 'income').reduce((sum, item) => sum + item.amountCents, 0)
   const hasFilters = Boolean(query.trim() || filter !== 'all' || walletFilter !== 'all')
+  const visibleTransactions = filteredTransactions.slice(page * TRANSACTION_PAGE_SIZE, (page + 1) * TRANSACTION_PAGE_SIZE)
 
   return (
     <div className="page-stack">
@@ -58,9 +77,11 @@ export default function TransactionsPage() {
           <select className="filter-select" value={walletFilter} onChange={(event) => setWalletFilter(event.target.value)} aria-label="Filter by wallet"><option value="all">All wallets</option>{state.wallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}</select>
           <button className="icon-button filter-button" type="button" aria-label="More filters"><SlidersHorizontal size={18} /><Filter size={13} /></button>
         </div>
-         {filteredTransactions.length ? <div className="transaction-list transaction-list-full">{filteredTransactions.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} onOpen={setSelectedTransaction} onDelete={setDeleteTarget} />)}</div> : <EmptyState icon={hasFilters ? SearchX : undefined} title={hasFilters ? 'No movements found' : 'No movements yet'} description={hasFilters ? 'Try a different search or clear the filters to see your full ledger.' : 'Add your first movement to start the ledger.'} action={hasFilters ? { label: 'Clear filters', onClick: clearFilters } : { label: 'Add movement', onClick: openQuickAdd }} secondaryAction={hasFilters ? { label: 'Add movement', onClick: openQuickAdd } : undefined} />}
-       </section>
-       <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} />
+          {visibleTransactions.length ? <div className="transaction-list transaction-list-full">{visibleTransactions.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} onOpen={setSelectedTransaction} onDelete={setDeleteTarget} />)}</div> : <EmptyState icon={hasFilters ? SearchX : undefined} title={hasFilters ? 'No movements found' : 'No movements yet'} description={hasFilters ? 'Try a different search or clear the filters to see your full ledger.' : 'Add your first movement to start the ledger.'} action={hasFilters ? { label: 'Clear filters', onClick: clearFilters } : { label: 'Add movement', onClick: openQuickAdd }} secondaryAction={hasFilters ? { label: 'Add movement', onClick: openQuickAdd } : undefined} />}
+          <TransactionPagination total={filteredTransactions.length} page={page} onPageChange={setPage} />
+        </section>
+        <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} onEdit={editTransaction} />
+        <TransactionModal open={Boolean(editTarget)} transaction={editTarget} onClose={() => setEditTarget(null)} onSuccess={(message) => { setEditTarget(null); notify(message) }} />
        <ConfirmModal open={Boolean(deleteTarget)} title="Remove movement?" message="This movement will be hidden from your active list." confirmLabel="Remove" danger onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} />
      </div>
   )

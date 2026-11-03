@@ -8,6 +8,7 @@ import { amountFromInput } from '../context/FinanceContext'
 import { toInputDate } from '../lib/dates'
 import { blobToDataUrl, compressReceipt, validateReceipt } from '../lib/receipts'
 import { parseAmountToCents } from '../lib/money'
+import type { Transaction } from '../types'
 import {
   transactionFormSchema,
   transferFormSchema,
@@ -21,41 +22,62 @@ interface TransactionModalProps {
   open: boolean
   onClose: () => void
   onSuccess: (message: string) => void
+  transaction?: Transaction | null
 }
 
 function FieldError({ message }: { message?: string }) {
   return message ? <span className="field-error">{message}</span> : null
 }
 
-export default function TransactionModal({ open, onClose, onSuccess }: TransactionModalProps) {
-  const { state, activeWallets, addTransaction, addTransfer } = useFinance()
+export default function TransactionModal({ open, onClose, onSuccess, transaction = null }: TransactionModalProps) {
+  const { state, activeWallets, addTransaction, addTransfer, updateTransaction, updateTransfer } = useFinance()
+  const editingTransaction = transaction
+  const editingMovement = editingTransaction && editingTransaction.type !== 'transfer' ? editingTransaction : null
+  const editingTransfer = editingTransaction?.type === 'transfer' ? editingTransaction : null
   const [tab, setTab] = useState<MovementTab>('expense')
   const [receipt, setReceipt] = useState<File | null>(null)
   const [receiptError, setReceiptError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const receiptInput = useRef<HTMLInputElement>(null)
   const cameraInput = useRef<HTMLInputElement>(null)
+  const transactionWalletIds = editingTransaction ? [editingTransaction.walletId, editingTransaction.relatedWalletId].filter((id): id is string => Boolean(id)) : []
+  const formWallets = editingTransaction
+    ? state.wallets.filter((wallet) => !wallet.isArchived || transactionWalletIds.includes(wallet.id))
+    : activeWallets
+  const transferPartner = editingTransfer?.transferGroupId
+    ? state.transactions.find((item) => item.transferGroupId === editingTransfer.transferGroupId && item.id !== editingTransfer.id && !item.deletedAt)
+    : undefined
+  const transferFromWalletId = editingTransfer
+    ? editingTransfer.transferDirection === 'out' ? editingTransfer.walletId : editingTransfer.relatedWalletId ?? transferPartner?.walletId ?? ''
+    : formWallets[0]?.id ?? ''
+  const transferToWalletId = editingTransfer
+    ? editingTransfer.transferDirection === 'out' ? editingTransfer.relatedWalletId ?? transferPartner?.walletId ?? '' : editingTransfer.walletId
+    : formWallets[1]?.id ?? formWallets[0]?.id ?? ''
+  const categoryIdFor = (type: 'expense' | 'income', currentId: string | null | undefined) => {
+    const current = state.categories.find((category) => category.id === currentId && (category.type === type || category.type === 'both'))
+    return current?.id ?? state.categories.find((category) => category.type === type || category.type === 'both')?.id ?? ''
+  }
 
   const transactionForm = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionFormSchema),
     defaultValues: {
       type: 'expense',
-      walletId: activeWallets[0]?.id ?? '',
-      amount: '',
-      categoryId: state.categories.find((category) => category.type === 'expense')?.id ?? '',
-      merchant: '',
-      note: '',
-      occurredAt: toInputDate(),
+      walletId: editingMovement?.walletId ?? formWallets[0]?.id ?? '',
+      amount: editingMovement ? (editingMovement.amountCents / 100).toFixed(2) : '',
+      categoryId: categoryIdFor(editingMovement?.type === 'income' ? 'income' : 'expense', editingMovement?.categoryId),
+      merchant: editingMovement?.merchant ?? '',
+      note: editingMovement?.note ?? '',
+      occurredAt: editingMovement ? toInputDate(new Date(editingMovement.occurredAt)) : toInputDate(),
     },
   })
   const transferForm = useForm<TransferFormValues>({
     resolver: zodResolver(transferFormSchema),
     defaultValues: {
-      fromWalletId: activeWallets[0]?.id ?? '',
-      toWalletId: activeWallets[1]?.id ?? activeWallets[0]?.id ?? '',
-      amount: '',
-      note: '',
-      occurredAt: toInputDate(),
+      fromWalletId: transferFromWalletId,
+      toWalletId: transferToWalletId,
+      amount: editingTransfer ? (editingTransfer.amountCents / 100).toFixed(2) : '',
+      note: editingTransfer?.note ?? '',
+      occurredAt: editingTransfer ? toInputDate(new Date(editingTransfer.occurredAt)) : toInputDate(),
     },
   })
 
@@ -64,31 +86,31 @@ export default function TransactionModal({ open, onClose, onSuccess }: Transacti
     setSubmitError(null)
     setReceipt(null)
     setReceiptError(null)
-    setTab('expense')
+    setTab(editingTransaction?.type ?? 'expense')
     transactionForm.reset({
-      type: 'expense',
-      walletId: activeWallets[0]?.id ?? '',
-      amount: '',
-      categoryId: state.categories.find((category) => category.type === 'expense')?.id ?? '',
-      merchant: '',
-      note: '',
-      occurredAt: toInputDate(),
+      type: editingTransaction?.type === 'income' ? 'income' : 'expense',
+      walletId: editingMovement?.walletId ?? formWallets[0]?.id ?? '',
+      amount: editingMovement ? (editingMovement.amountCents / 100).toFixed(2) : '',
+      categoryId: categoryIdFor(editingMovement?.type === 'income' ? 'income' : 'expense', editingMovement?.categoryId),
+      merchant: editingMovement?.merchant ?? '',
+      note: editingMovement?.note ?? '',
+      occurredAt: editingMovement ? toInputDate(new Date(editingMovement.occurredAt)) : toInputDate(),
     })
     transferForm.reset({
-      fromWalletId: activeWallets[0]?.id ?? '',
-      toWalletId: activeWallets[1]?.id ?? activeWallets[0]?.id ?? '',
-      amount: '',
-      note: '',
-      occurredAt: toInputDate(),
+      fromWalletId: transferFromWalletId,
+      toWalletId: transferToWalletId,
+      amount: editingTransfer ? (editingTransfer.amountCents / 100).toFixed(2) : '',
+      note: editingTransfer?.note ?? '',
+      occurredAt: editingTransfer ? toInputDate(new Date(editingTransfer.occurredAt)) : toInputDate(),
     })
-  }, [open])
+  }, [open, editingTransaction?.id])
 
   function changeTab(nextTab: MovementTab): void {
     setTab(nextTab)
     setSubmitError(null)
     if (nextTab !== 'transfer') {
       transactionForm.setValue('type', nextTab)
-      transactionForm.setValue('categoryId', state.categories.find((category) => category.type === nextTab)?.id ?? '')
+      transactionForm.setValue('categoryId', categoryIdFor(nextTab, transactionForm.getValues('categoryId')))
     }
   }
 
@@ -115,8 +137,8 @@ export default function TransactionModal({ open, onClose, onSuccess }: Transacti
       return
     }
     try {
-      const receiptUrl = receipt ? await blobToDataUrl(await compressReceipt(receipt)) : null
-      addTransaction({
+      const receiptUrl = receipt ? await blobToDataUrl(await compressReceipt(receipt)) : editingTransaction?.receiptUrl ?? null
+      const input = {
         walletId: values.walletId,
         type: values.type,
         amountCents: amountFromInput(values.amount),
@@ -124,10 +146,15 @@ export default function TransactionModal({ open, onClose, onSuccess }: Transacti
         merchant: values.merchant,
         note: values.note,
         occurredAt: values.occurredAt,
-        receiptName: receipt?.name ?? null,
+        receiptName: receipt?.name ?? editingTransaction?.receiptName ?? null,
         receiptUrl,
-      })
-       onSuccess(`${values.type === 'expense' ? 'Expense' : 'Income'} added.`)
+      }
+      if (editingTransaction) {
+        updateTransaction(editingTransaction.id, input)
+      } else {
+        addTransaction(input)
+      }
+      onSuccess(`${values.type === 'expense' ? 'Expense' : 'Income'} ${editingTransaction ? 'updated' : 'added'}.`)
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Could not save this movement.')
     }
@@ -141,25 +168,31 @@ export default function TransactionModal({ open, onClose, onSuccess }: Transacti
       return
     }
     try {
-      addTransfer({
+      const input = {
         fromWalletId: values.fromWalletId,
         toWalletId: values.toWalletId,
         amountCents: cents,
         note: values.note,
         occurredAt: values.occurredAt,
-      })
-      onSuccess('Transfer recorded between your wallets.')
+      }
+      if (editingTransfer?.transferGroupId) {
+        updateTransfer(editingTransfer.transferGroupId, input)
+      } else {
+        addTransfer(input)
+      }
+      onSuccess(editingTransfer ? 'Transfer updated between your wallets.' : 'Transfer recorded between your wallets.')
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Could not save this transfer.')
     }
   }
 
   const visibleCategories = state.categories.filter((category) => category.type === tab || category.type === 'both')
+  const movementTabs: MovementTab[] = editingTransfer ? ['transfer'] : editingTransaction ? ['expense', 'income'] : ['expense', 'income', 'transfer']
 
   return (
-    <Modal open={open} title="Add a movement" description="Record a transaction with the details you want to remember." onClose={onClose} size="large">
+    <Modal open={open} title={editingTransaction ? 'Edit movement' : 'Add a movement'} description={editingTransaction ? 'Update the details while keeping your ledger accurate.' : 'Record a transaction with the details you want to remember.'} onClose={onClose} size="large">
       <div className="movement-tabs" role="tablist" aria-label="Movement type">
-        {(['expense', 'income', 'transfer'] as MovementTab[]).map((item) => (
+        {movementTabs.map((item) => (
           <button key={item} className={`movement-tab ${tab === item ? 'movement-tab-active' : ''}`} type="button" role="tab" aria-selected={tab === item} onClick={() => changeTab(item)}>
             {item === 'expense' ? 'Expense' : item === 'income' ? 'Income' : 'Transfer'}
           </button>
@@ -172,14 +205,14 @@ export default function TransactionModal({ open, onClose, onSuccess }: Transacti
             <label className="field">
               <span>From wallet</span>
               <select {...transferForm.register('fromWalletId')}>
-                {activeWallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}
+                {formWallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}
               </select>
               <FieldError message={transferForm.formState.errors.fromWalletId?.message} />
             </label>
             <label className="field">
               <span>To wallet</span>
               <select {...transferForm.register('toWalletId')}>
-                {activeWallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}
+                {formWallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}
               </select>
               <FieldError message={transferForm.formState.errors.toWalletId?.message} />
             </label>
@@ -204,7 +237,7 @@ export default function TransactionModal({ open, onClose, onSuccess }: Transacti
           {submitError && <div className="form-alert">{submitError}</div>}
           <div className="modal-actions">
             <button className="button button-quiet" type="button" onClick={onClose}>Cancel</button>
-            <button className="button button-primary" type="submit" disabled={transferForm.formState.isSubmitting}><Send size={16} /> Save transfer</button>
+            <button className="button button-primary" type="submit" disabled={transferForm.formState.isSubmitting}><Send size={16} /> {editingTransaction ? 'Update transfer' : 'Save transfer'}</button>
           </div>
         </form>
       ) : (
@@ -213,7 +246,7 @@ export default function TransactionModal({ open, onClose, onSuccess }: Transacti
             <label className="field">
               <span>{tab === 'expense' ? 'Paid from' : 'Added to'}</span>
               <select {...transactionForm.register('walletId')}>
-                {activeWallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}
+                {formWallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}
               </select>
               <FieldError message={transactionForm.formState.errors.walletId?.message} />
             </label>
@@ -248,7 +281,7 @@ export default function TransactionModal({ open, onClose, onSuccess }: Transacti
             <FieldError message={transactionForm.formState.errors.note?.message} />
           </label>
           <div className="receipt-upload-block">
-            <div className="receipt-upload-heading"><span>{receipt ? <Paperclip size={18} /> : <UploadCloud size={19} />}<span><strong>{receipt ? receipt.name : 'Attach a receipt'}</strong><small>{receipt ? 'Ready to compress and attach' : 'JPG, PNG, or WebP up to 8 MB'}</small></span></span></div>
+            <div className="receipt-upload-heading"><span>{receipt || editingTransaction?.receiptName ? <Paperclip size={18} /> : <UploadCloud size={19} />}<span><strong>{receipt?.name ?? editingTransaction?.receiptName ?? 'Attach a receipt'}</strong><small>{receipt ? 'Ready to compress and attach' : editingTransaction?.receiptName ? 'Existing receipt will be kept unless replaced' : 'JPG, PNG, or WebP up to 8 MB'}</small></span></span></div>
             <div className="receipt-upload-actions"><button className="button button-secondary button-small" type="button" onClick={() => receiptInput.current?.click()}><ImagePlus size={15} /> Choose image</button><button className="button button-quiet button-small" type="button" onClick={() => cameraInput.current?.click()}><Camera size={15} /> Use camera</button></div>
             <input ref={receiptInput} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { handleReceiptChange(event.target.files?.[0]); event.currentTarget.value = '' }} />
             <input ref={cameraInput} className="sr-only" type="file" accept="image/*" capture="environment" onChange={(event) => { handleReceiptChange(event.target.files?.[0]); event.currentTarget.value = '' }} />
@@ -257,7 +290,7 @@ export default function TransactionModal({ open, onClose, onSuccess }: Transacti
           {submitError && <div className="form-alert">{submitError}</div>}
           <div className="modal-actions">
             <button className="button button-quiet" type="button" onClick={onClose}>Cancel</button>
-            <button className="button button-primary" type="submit" disabled={transactionForm.formState.isSubmitting}><Send size={16} /> Save {tab}</button>
+            <button className="button button-primary" type="submit" disabled={transactionForm.formState.isSubmitting}><Send size={16} /> {editingTransaction ? `Update ${tab}` : `Save ${tab}`}</button>
           </div>
         </form>
       )}

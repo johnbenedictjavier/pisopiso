@@ -81,7 +81,7 @@ export interface AppState {
   transactions: Transaction[]
 }
 
-export interface AddTransactionInput {
+export interface TransactionMovementInput {
   walletId: string
   type: Exclude<TransactionType, 'transfer'>
   amountCents: number
@@ -93,6 +93,9 @@ export interface AddTransactionInput {
   receiptUrl?: string | null
 }
 
+export type AddTransactionInput = TransactionMovementInput
+export type UpdateTransactionInput = TransactionMovementInput
+
 export interface AddTransferInput {
   fromWalletId: string
   toWalletId: string
@@ -100,6 +103,8 @@ export interface AddTransferInput {
   note: string
   occurredAt: string
 }
+
+export type UpdateTransferInput = AddTransferInput
 
 export interface AddWalletInput {
   name: string

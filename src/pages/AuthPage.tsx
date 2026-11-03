@@ -175,7 +175,7 @@ export default function AuthPage() {
   const pinButtonLabel = authMode === 'sign-up' && step === 'pin' ? 'Continue' : authMode === 'sign-in' ? 'Sign in' : 'Create account'
 
   return (
-    <main className="auth-page auth-keypad-page">
+    <main className={`auth-page auth-keypad-page auth-${authMode}-${step}`}>
       <section className="auth-art">
         <div className="auth-art-top"><BrandMark /></div>
         <div className="auth-art-copy"><span className="eyebrow">Your calmer money space</span><h1>Every peso has a place.</h1><p>Simple enough for today. Clear enough for tomorrow.</p></div>

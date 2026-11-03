@@ -74,6 +74,78 @@ const E2E_STATE = {
       createdAt: '2025-01-03T09:00:00.000Z',
       deletedAt: null,
     },
+    {
+      id: 'transaction-test-coffee',
+      userId: 'e2e-user',
+      walletId: 'wallet-test-bpi',
+      type: 'expense',
+      amountCents: 12500,
+      categoryId: 'food',
+      merchant: 'Morning coffee',
+      note: 'Test expense',
+      occurredAt: '2025-01-04T09:00:00.000Z',
+      transferGroupId: null,
+      transferDirection: null,
+      relatedWalletId: null,
+      receiptName: null,
+      receiptUrl: null,
+      createdAt: '2025-01-04T09:00:00.000Z',
+      deletedAt: null,
+    },
+    {
+      id: 'transaction-test-transfer-out',
+      userId: 'e2e-user',
+      walletId: 'wallet-test-bpi',
+      type: 'transfer',
+      amountCents: 50000,
+      categoryId: null,
+      merchant: 'Wallet transfer',
+      note: 'Test transfer',
+      occurredAt: '2025-01-05T09:00:00.000Z',
+      transferGroupId: 'transfer-test-group',
+      transferDirection: 'out',
+      relatedWalletId: 'wallet-test-cash',
+      receiptName: null,
+      receiptUrl: null,
+      createdAt: '2025-01-05T09:00:00.000Z',
+      deletedAt: null,
+    },
+    {
+      id: 'transaction-test-transfer-in',
+      userId: 'e2e-user',
+      walletId: 'wallet-test-cash',
+      type: 'transfer',
+      amountCents: 50000,
+      categoryId: null,
+      merchant: 'Wallet transfer',
+      note: 'Test transfer',
+      occurredAt: '2025-01-05T09:00:00.000Z',
+      transferGroupId: 'transfer-test-group',
+      transferDirection: 'in',
+      relatedWalletId: 'wallet-test-bpi',
+      receiptName: null,
+      receiptUrl: null,
+      createdAt: '2025-01-05T09:00:00.000Z',
+      deletedAt: null,
+    },
+    ...Array.from({ length: 9 }, (_, index) => ({
+      id: `transaction-test-extra-${index + 1}`,
+      userId: 'e2e-user',
+      walletId: 'wallet-test-bpi',
+      type: 'income',
+      amountCents: 1000 + index * 100,
+      categoryId: 'salary',
+      merchant: `Other income ${index + 1}`,
+      note: 'Pagination fixture',
+      occurredAt: `2025-01-${String(6 + index).padStart(2, '0')}T09:00:00.000Z`,
+      transferGroupId: null,
+      transferDirection: null,
+      relatedWalletId: null,
+      receiptName: null,
+      receiptUrl: null,
+      createdAt: `2025-01-${String(6 + index).padStart(2, '0')}T09:00:00.000Z`,
+      deletedAt: null,
+    })),
   ],
 }
 
@@ -96,7 +168,7 @@ test('shows the account balances on the overview', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'Overview' }).first()).toBeVisible()
   await expect(page.getByText('Total balance')).toBeVisible()
-  await expect(page.getByText('BPI Everyday')).toBeVisible()
+  await expect(page.getByRole('link', { name: /BPI Everyday/ })).toBeVisible()
   await expect(page.getByRole('link', { name: 'View history' })).toBeVisible()
 })
 
@@ -139,6 +211,56 @@ test('shows a useful empty state when filters have no results', async ({ page })
   await expect(page.getByRole('button', { name: 'Clear filters' })).toBeVisible()
   await page.getByRole('button', { name: 'Clear filters' }).click()
   await expect(page.getByText('Monthly salary')).toBeVisible()
+})
+
+test('paginates transaction history and shows the empty page range', async ({ page }) => {
+  await openUnlockedApp(page)
+  await page.goto('/transactions')
+
+  await expect(page.getByText('1-10 of 13', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Page 1')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Previous page' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Next page' }).click()
+  await expect(page.getByText('11-13 of 13', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Page 2')).toBeVisible()
+  await page.getByPlaceholder('Search merchant, note, or category').fill('nothing matches this')
+  await expect(page.getByText('0-0 of 0', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Page 0')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Previous page' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Next page' })).toBeDisabled()
+})
+
+test('edits income, expense, and linked transfer movements', async ({ page }) => {
+  await openUnlockedApp(page)
+  await page.goto('/transactions')
+
+  const editMovement = async (rowText: string, amount: string, saveLabel: string) => {
+    await page.locator('.transaction-row').filter({ hasText: rowText }).first().click()
+    const detailDialog = page.getByRole('dialog')
+    await detailDialog.getByRole('button', { name: 'Edit movement' }).click()
+    const editDialog = page.getByRole('dialog')
+    await editDialog.getByLabel('Amount').fill(amount)
+    await editDialog.getByRole('button', { name: saveLabel }).click()
+    await expect(page.getByRole('status')).toBeVisible()
+  }
+
+  await editMovement('Monthly salary', '70000', 'Update income')
+  await expect(page.getByRole('status')).toContainText('Income updated.')
+  await editMovement('Morning coffee', '130', 'Update expense')
+  await expect(page.getByRole('status')).toContainText('Expense updated.')
+  await editMovement('To Cash on hand', '750', 'Update transfer')
+  await expect(page.getByRole('status')).toContainText('Transfer updated')
+  await expect(page.getByText('-₱750.00')).toBeVisible()
+  await expect(page.getByText('+₱750.00')).toBeVisible()
+})
+
+test('paginates wallet transaction history', async ({ page }) => {
+  await openUnlockedApp(page)
+  await page.goto('/wallets/wallet-test-bpi')
+
+  await expect(page.getByText('1-10 of 12', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Next page' }).click()
+  await expect(page.getByText('11-12 of 12', { exact: true })).toBeVisible()
 })
 
 test('can create a wallet with a custom card style and open its details', async ({ page }) => {
@@ -185,6 +307,7 @@ test('reorders wallets and preserves the first position', async ({ page }) => {
 
   const firstWallet = page.locator('.wallets-page-grid > article.wallet-card').first()
   await expect(firstWallet).toHaveAttribute('data-wallet-id', 'wallet-test-bpi')
+  await expect(firstWallet).toHaveClass(/wallet-card-reorderable/)
   const firstBox = await page.locator('[data-wallet-id="wallet-test-bpi"]').boundingBox()
   const secondBox = await page.locator('[data-wallet-id="wallet-test-cash"]').boundingBox()
   expect(firstBox).not.toBeNull()
