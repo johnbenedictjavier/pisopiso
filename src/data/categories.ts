@@ -13,6 +13,7 @@ export const categoryCatalog: Category[] = [
   { id: 'subscriptions', name: 'Subscriptions', type: 'expense', color: '#718698', icon: 'repeat' },
   { id: 'other-expense', name: 'Other expense', type: 'expense', color: '#7f8a83', icon: 'more-horizontal' },
   { id: 'salary', name: 'Salary', type: 'income', color: '#4f8a59', icon: 'briefcase-business' },
+  { id: 'allowance', name: 'Allowance', type: 'income', color: '#6b7ca8', icon: 'gift' },
   { id: 'freelance', name: 'Freelance', type: 'income', color: '#3c8d8a', icon: 'laptop' },
   { id: 'business', name: 'Business', type: 'income', color: '#4b77a2', icon: 'store' },
   { id: 'investment-income', name: 'Investment income', type: 'income', color: '#b98b3f', icon: 'trending-up' },

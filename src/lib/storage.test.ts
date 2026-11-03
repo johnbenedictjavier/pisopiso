@@ -41,6 +41,14 @@ describe('account storage', () => {
     expect(loadAppState('user-two', 'two@example.com').wallets).toHaveLength(0)
   })
 
+  it('adds new catalog categories to an existing account', () => {
+    const state = createEmptyState('user-one', 'one@example.com')
+    state.categories = state.categories.filter((category) => category.id !== 'allowance')
+    saveAppState(state, 'user-one')
+
+    expect(loadAppState('user-one', 'one@example.com').categories).toContainEqual(expect.objectContaining({ id: 'allowance', name: 'Allowance', type: 'income' }))
+  })
+
   it('removes legacy demo records while preserving personal records', () => {
     window.localStorage.setItem('pisopiso:local-state:v2', JSON.stringify({
       profile: { id: 'demo-user', displayName: 'Mika Santos', email: 'mika@pisopiso.local' },

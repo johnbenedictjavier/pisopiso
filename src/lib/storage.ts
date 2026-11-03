@@ -46,6 +46,10 @@ function migrateAppState(value: Partial<AppState>, userId: string, email: string
   const demoProfile = isDemoProfile(sourceProfile)
   const wallets = (value.wallets ?? []).filter((wallet) => !isDemoWallet(wallet))
   const walletIds = new Set(wallets.map((wallet) => wallet.id))
+  const storedCategories = value.categories ?? []
+  const categories = storedCategories.length
+    ? [...storedCategories, ...categoryCatalog.filter((category) => !storedCategories.some((storedCategory) => storedCategory.id === category.id))]
+    : categoryCatalog
   const transactions = (value.transactions ?? []).filter(
     (transaction) => transaction.userId !== DEMO_USER_ID && walletIds.has(transaction.walletId),
   )
@@ -64,7 +68,7 @@ function migrateAppState(value: Partial<AppState>, userId: string, email: string
       avatarPositionX: clampImagePosition(sourceProfile?.avatarPositionX),
       avatarPositionY: clampImagePosition(sourceProfile?.avatarPositionY),
     },
-    categories: value.categories?.length ? value.categories : categoryCatalog,
+    categories,
     wallets: wallets.map((wallet) => ({
       ...wallet,
       userId,
