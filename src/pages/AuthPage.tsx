@@ -30,6 +30,7 @@ function describeAuthError(message: string, mode: AuthMode): string {
   const normalized = message.toLowerCase()
   if (mode === 'sign-up' && /already|registered|exists/.test(normalized)) return 'An account with this email already exists. Try signing in.'
   if (/invalid api key|invalid api_key/.test(normalized)) return 'Supabase rejected the API key. Copy the publishable key from the same Supabase project into VITE_SUPABASE_PUBLISHABLE_KEY.'
+  if (/email not confirmed|not confirmed/.test(normalized)) return 'Confirm your email before signing in. Check your inbox or resend the confirmation email.'
   if (/email signups are disabled|signup is disabled/.test(normalized)) return 'Email signup is disabled in Supabase. Enable the Email provider to create an account.'
   if (/rate limit|too many requests/.test(normalized)) return 'Too many signup attempts. Wait a moment and try again.'
   if (/error sending confirmation|sending.*email|smtp/.test(normalized)) return 'The account was not created because the confirmation email could not be sent. Check Supabase email settings.'
@@ -48,6 +49,7 @@ export default function AuthPage() {
   const [confirmationPin, setConfirmationPin] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [confirmationNeeded, setConfirmationNeeded] = useState(false)
   const [busy, setBusy] = useState(false)
 
   function changeMode(nextMode: AuthMode): void {
@@ -57,6 +59,7 @@ export default function AuthPage() {
     setConfirmationPin('')
     setError('')
     setNotice('')
+    setConfirmationNeeded(false)
   }
 
   function continueWithEmail(event: React.FormEvent<HTMLFormElement>): void {
@@ -70,6 +73,7 @@ export default function AuthPage() {
     rememberEmail(normalizedEmail)
     setError('')
     setNotice('')
+    setConfirmationNeeded(false)
     setStep('pin')
   }
 
@@ -82,6 +86,7 @@ export default function AuthPage() {
     }
     setError('')
     setNotice('')
+    setConfirmationNeeded(false)
   }
 
   function addDigit(digit: string): void {
@@ -100,6 +105,7 @@ export default function AuthPage() {
       setStep('pin')
       setConfirmationPin('')
       setError('')
+      setConfirmationNeeded(false)
       return
     }
     setStep('email')
@@ -107,6 +113,36 @@ export default function AuthPage() {
     setConfirmationPin('')
     setError('')
     setNotice('')
+    setConfirmationNeeded(false)
+  }
+
+  async function resendConfirmationEmail(): Promise<void> {
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      const client = await getSupabase()
+      if (!client) {
+        setError('Account access is not configured yet. Add your Supabase credentials to continue.')
+        return
+      }
+      const normalizedEmail = email.trim().toLowerCase()
+      const result = await client.auth.resend({
+        type: 'signup',
+        email: normalizedEmail,
+        options: { emailRedirectTo: `${window.location.origin}/login` },
+      })
+      if (result.error) {
+        setError(describeAuthError(result.error.message, 'sign-up'))
+        return
+      }
+      setConfirmationNeeded(false)
+      setNotice('Confirmation email sent. Open it before entering your PIN again.')
+    } catch {
+      setError('We could not resend the confirmation email. Please try again.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function submitPin(event: React.FormEvent<HTMLFormElement>): Promise<void> {
@@ -149,6 +185,7 @@ export default function AuthPage() {
         authResult = await client.auth.signInWithPassword({ email: normalizedEmail, password: pin })
       }
       if (authResult.error) {
+        setConfirmationNeeded(authMode === 'sign-in' && /email not confirmed|not confirmed/i.test(authResult.error.message))
         setError(describeAuthError(authResult.error.message, authMode))
         return
       }
@@ -214,7 +251,9 @@ export default function AuthPage() {
                   <button type="button" onClick={() => addDigit('0')}>0</button>
                   <button type="button" aria-label="Delete last PIN digit" onClick={removeDigit}><Delete size={19} /></button>
                 </div>
+                {notice && <div className="form-success" role="status">{notice}</div>}
                 {error && <div className="form-alert" role="alert">{error}</div>}
+                {confirmationNeeded && <button className="button button-quiet button-small auth-resend-button" type="button" onClick={() => { void resendConfirmationEmail() }} disabled={busy}><Mail size={14} /> Resend confirmation email</button>}
                 <button className="button button-primary auth-submit" type="submit" disabled={busy || activePin.length !== PIN_LENGTH}>{busy ? 'Working...' : pinButtonLabel === 'Create account' ? <><Check size={16} /> Create account</> : pinButtonLabel === 'Sign in' ? <><LockKeyhole size={16} /> Sign in</> : <><ArrowRight size={16} /> Continue</>}</button>
               </form>
             </>
