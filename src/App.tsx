@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from './layout/AppShell'
+import { useAuthLock } from './context/AuthLockContext'
 
 const AuthPage = lazy(() => import('./pages/AuthPage'))
 const OverviewPage = lazy(() => import('./pages/OverviewPage'))
@@ -19,14 +20,19 @@ function PageLoader() {
   )
 }
 
+function ProtectedAppShell() {
+  const { isLocked } = useAuthLock()
+  return isLocked ? <Navigate to="/login" replace /> : <AppShell />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/login" element={<AuthPage />} />
-          <Route element={<AppShell />}>
-            <Route index element={<Navigate to="/login" replace />} />
+          <Route element={<ProtectedAppShell />}>
+            <Route index element={<Navigate to="/overview" replace />} />
             <Route path="overview" element={<OverviewPage />} />
             <Route path="wallets" element={<WalletsPage />} />
             <Route path="wallets/:walletId" element={<WalletDetailPage />} />

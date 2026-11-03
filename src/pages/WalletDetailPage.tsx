@@ -25,7 +25,7 @@ export default function WalletDetailPage() {
   const income = walletTransactions.filter((transaction) => transaction.type === 'income').reduce((sum, transaction) => sum + transaction.amountCents, 0)
   const expenses = walletTransactions.filter((transaction) => transaction.type === 'expense').reduce((sum, transaction) => sum + transaction.amountCents, 0)
 
-  if (!wallet) return <EmptyState title="Wallet not found" description="This wallet may have been archived or does not exist in this demo." action={{ label: 'Back to wallets', onClick: () => navigate('/wallets') }} />
+  if (!wallet) return <EmptyState title="Wallet not found" description="This wallet may have been archived or does not exist." action={{ label: 'Back to wallets', onClick: () => navigate('/wallets') }} />
 
   return (
     <div className="page-stack wallet-detail-page">

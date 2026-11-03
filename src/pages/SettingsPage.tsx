@@ -105,7 +105,7 @@ export default function SettingsPage() {
         </div>
         <aside className="settings-aside"><div className="security-card"><span className="security-mark"><ShieldCheck size={21} /></span><span className="section-kicker">Private by design</span><h2>Your financial details stay yours.</h2><p>PisoPiso is designed to keep your money details personal.</p></div><div className="about-card"><span className="section-kicker">PisoPiso</span><strong>Every peso has a place.</strong><p>Built for the small decisions that add up.</p><span>Version 0.1.0</span></div></aside>
       </section>
-      <ConfirmModal open={resetOpen} title="Start fresh?" message="This will remove your local wallets and movements. Synced data will not be changed." confirmLabel="Start fresh" danger onClose={() => setResetOpen(false)} onConfirm={reset} />
+      <ConfirmModal open={resetOpen} title="Start fresh?" message="This will remove your wallets and movements saved in this browser for this account." confirmLabel="Start fresh" danger onClose={() => setResetOpen(false)} onConfirm={reset} />
     </div>
   )
 }

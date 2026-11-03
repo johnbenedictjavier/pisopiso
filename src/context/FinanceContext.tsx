@@ -4,6 +4,8 @@ import { isCurrentMonth } from '../lib/dates'
 import { parseAmountToCents } from '../lib/money'
 import { calculateWalletBalance, canSpend, transactionEffect } from '../lib/ledger'
 import { loadAppState, saveAppState } from '../lib/storage'
+import { createEmptyState } from '../data/defaults'
+import { getTestSessionUser } from '../lib/testSession'
 import type {
   AddTransactionInput,
   AddTransferInput,
@@ -33,8 +35,9 @@ interface FinanceContextValue {
   deleteTransaction: (transactionId: string) => void
   updateTheme: (theme: AppState['profile']['theme']) => void
   updateDisplayName: (displayName: string) => void
-  updateProfileIdentity: (id: string, email: string) => void
+  loadUserState: (id: string, email: string) => void
   updateAvatar: (avatarUrl: string | null, avatarName: string | null, avatarScale: number, avatarPositionX: number, avatarPositionY: number) => void
+  reorderWallets: (walletId: string, targetWalletId: string) => void
   startFresh: () => void
 }
 
@@ -52,12 +55,16 @@ function createTransaction(
 }
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AppState>(() => loadAppState())
+  const [state, setState] = useState<AppState>(() => {
+    const testUser = getTestSessionUser()
+    return testUser ? loadAppState(testUser.id, testUser.email) : createEmptyState()
+  })
+  const [activeUserId, setActiveUserId] = useState(() => getTestSessionUser()?.id ?? '')
 
   useEffect(() => {
-    saveAppState(state)
+    if (activeUserId) saveAppState(state, activeUserId)
     document.documentElement.dataset.theme = state.profile.theme
-  }, [state])
+  }, [activeUserId, state])
 
   const activeWallets = useMemo(() => state.wallets.filter((wallet) => !wallet.isArchived), [state.wallets])
   const transactions = useMemo(
@@ -225,12 +232,32 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setState((current) => ({ ...current, profile: { ...current.profile, displayName: displayName.trim() } }))
   }
 
-  function updateProfileIdentity(id: string, email: string): void {
-    setState((current) => ({ ...current, profile: { ...current.profile, id, email } }))
+  function loadUserState(id: string, email: string): void {
+    setState(loadAppState(id, email))
+    setActiveUserId(id)
   }
 
   function updateAvatar(avatarUrl: string | null, avatarName: string | null, avatarScale: number, avatarPositionX: number, avatarPositionY: number): void {
     setState((current) => ({ ...current, profile: { ...current.profile, avatarUrl, avatarName, avatarScale, avatarPositionX, avatarPositionY } }))
+  }
+
+  function reorderWallets(walletId: string, targetWalletId: string): void {
+    if (walletId === targetWalletId) return
+    setState((current) => {
+      const activeWallets = current.wallets.filter((wallet) => !wallet.isArchived)
+      const fromIndex = activeWallets.findIndex((wallet) => wallet.id === walletId)
+      const targetIndex = activeWallets.findIndex((wallet) => wallet.id === targetWalletId)
+      if (fromIndex < 0 || targetIndex < 0) return current
+
+      const nextActiveWallets = [...activeWallets]
+      const [movedWallet] = nextActiveWallets.splice(fromIndex, 1)
+      nextActiveWallets.splice(targetIndex, 0, movedWallet)
+      let activeIndex = 0
+      return {
+        ...current,
+        wallets: current.wallets.map((wallet) => wallet.isArchived ? wallet : nextActiveWallets[activeIndex++]),
+      }
+    })
   }
 
   function startFresh(): void {
@@ -252,8 +279,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     deleteTransaction,
     updateTheme,
     updateDisplayName,
-    updateProfileIdentity,
+    loadUserState,
     updateAvatar,
+    reorderWallets,
     startFresh,
   }
 

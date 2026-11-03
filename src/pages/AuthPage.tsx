@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Check, Delete, LockKeyhole, Mail } from 'lucide-
 import { useNavigate } from 'react-router-dom'
 import BrandMark from '../components/BrandMark'
 import { useFinance } from '../context/FinanceContext'
+import { useAuthLock } from '../context/AuthLockContext'
 import { buildAuthPassword } from '../lib/auth'
 import { getSupabase } from '../lib/supabase'
 
@@ -40,7 +41,8 @@ function describeAuthError(message: string, mode: AuthMode): string {
 
 export default function AuthPage() {
   const navigate = useNavigate()
-  const { updateProfileIdentity } = useFinance()
+  const { loadUserState } = useFinance()
+  const { unlock } = useAuthLock()
   const initialEmail = getRememberedEmail()
   const [authMode, setAuthMode] = useState<AuthMode>(initialEmail ? 'sign-in' : 'sign-up')
   const [step, setStep] = useState<AuthStep>(initialEmail ? 'pin' : 'email')
@@ -146,7 +148,6 @@ export default function AuthPage() {
         setError(describeAuthError(authResult.error.message, authMode))
         return
       }
-      if (authResult.data.user) updateProfileIdentity(authResult.data.user.id, authResult.data.user.email ?? normalizedEmail)
       if (authMode === 'sign-up' && !authResult.data.session) {
         setError('Email confirmation is enabled in Supabase. Turn off Confirm email in Authentication > Providers > Email, then try again.')
         setStep('email')
@@ -154,7 +155,13 @@ export default function AuthPage() {
         setConfirmationPin('')
         return
       }
-      navigate('/overview')
+      if (!authResult.data.user || !authResult.data.session) {
+        setError('Account access could not be completed. Please try again.')
+        return
+      }
+      loadUserState(authResult.data.user.id, authResult.data.user.email ?? normalizedEmail)
+      unlock()
+      navigate('/overview', { replace: true })
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {

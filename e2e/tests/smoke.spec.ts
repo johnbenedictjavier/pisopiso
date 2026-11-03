@@ -3,8 +3,96 @@ import { expect, test } from '@playwright/test'
 test.use({ actionTimeout: 10_000 })
 test.setTimeout(60_000)
 
-test('shows the overview and its seeded balances', async ({ page }) => {
+const E2E_STORAGE_KEY = 'pisopiso:local-state:v3:e2e-user'
+const E2E_BOOTSTRAP_KEY = 'pisopiso:e2e-fixture-loaded'
+const E2E_STATE = {
+  profile: {
+    id: 'e2e-user',
+    displayName: 'Test User',
+    email: 'e2e@example.com',
+    theme: 'light',
+    currency: 'PHP',
+    avatarUrl: null,
+    avatarName: null,
+    avatarScale: 1,
+    avatarPositionX: 0,
+    avatarPositionY: 0,
+  },
+  wallets: [
+    {
+      id: 'wallet-test-bpi',
+      userId: 'e2e-user',
+      name: 'BPI Everyday',
+      type: 'bank',
+      openingBalanceCents: 6845075,
+      allowOverdraft: false,
+      color: '#a51d31',
+      cardTheme: 'emerald',
+      logoUrl: null,
+      logoName: null,
+      logoScale: 1,
+      logoPositionX: 0,
+      logoPositionY: 0,
+      isArchived: false,
+      createdAt: '2025-01-01T00:00:00.000Z',
+    },
+    {
+      id: 'wallet-test-cash',
+      userId: 'e2e-user',
+      name: 'Cash on hand',
+      type: 'cash',
+      openingBalanceCents: 340000,
+      allowOverdraft: false,
+      color: '#6b806f',
+      cardTheme: 'sand',
+      logoUrl: null,
+      logoName: null,
+      logoScale: 1,
+      logoPositionX: 0,
+      logoPositionY: 0,
+      isArchived: false,
+      createdAt: '2025-01-02T00:00:00.000Z',
+    },
+  ],
+  categories: [],
+  transactions: [
+    {
+      id: 'transaction-test-salary',
+      userId: 'e2e-user',
+      walletId: 'wallet-test-bpi',
+      type: 'income',
+      amountCents: 6500000,
+      categoryId: 'salary',
+      merchant: 'Monthly salary',
+      note: 'Test payroll',
+      occurredAt: '2025-01-03T09:00:00.000Z',
+      transferGroupId: null,
+      transferDirection: null,
+      relatedWalletId: null,
+      receiptName: null,
+      receiptUrl: null,
+      createdAt: '2025-01-03T09:00:00.000Z',
+      deletedAt: null,
+    },
+  ],
+}
+
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(({ bootstrapKey, storageKey, state }) => {
+    if (window.localStorage.getItem(bootstrapKey) === 'true') return
+    window.localStorage.clear()
+    window.localStorage.setItem(storageKey, JSON.stringify(state))
+    window.localStorage.setItem(bootstrapKey, 'true')
+  }, { bootstrapKey: E2E_BOOTSTRAP_KEY, storageKey: E2E_STORAGE_KEY, state: E2E_STATE })
+})
+
+async function openUnlockedApp(page: import('@playwright/test').Page): Promise<void> {
+  await page.addInitScript(() => window.localStorage.setItem('pisopiso:e2e-session', 'true'))
   await page.goto('/overview')
+}
+
+test('shows the account balances on the overview', async ({ page }) => {
+  await openUnlockedApp(page)
 
   await expect(page.getByRole('heading', { name: 'Overview' }).first()).toBeVisible()
   await expect(page.getByText('Total balance')).toBeVisible()
@@ -13,6 +101,7 @@ test('shows the overview and its seeded balances', async ({ page }) => {
 })
 
 test('filters the dashboard and downloads a dashboard image', async ({ page }) => {
+  await openUnlockedApp(page)
   await page.goto('/dashboard')
 
   for (const label of ['This day', 'This week', 'This month', '90 days', 'All time']) {
@@ -28,7 +117,7 @@ test('filters the dashboard and downloads a dashboard image', async ({ page }) =
 })
 
 test('can record an expense through the shared movement flow', async ({ page }) => {
-  await page.goto('/overview')
+  await openUnlockedApp(page)
   await page.getByRole('button', { name: 'Log something' }).click()
 
   const dialog = page.getByRole('dialog')
@@ -42,6 +131,7 @@ test('can record an expense through the shared movement flow', async ({ page }) 
 })
 
 test('shows a useful empty state when filters have no results', async ({ page }) => {
+  await openUnlockedApp(page)
   await page.goto('/transactions')
   await page.getByPlaceholder('Search merchant, note, or category').fill('not-a-real-movement')
 
@@ -52,6 +142,7 @@ test('shows a useful empty state when filters have no results', async ({ page })
 })
 
 test('can create a wallet with a custom card style and open its details', async ({ page }) => {
+  await openUnlockedApp(page)
   await page.goto('/wallets')
   await expect(page.getByRole('heading', { name: 'Wallets' }).first()).toBeVisible()
   await page.getByRole('button', { name: 'Add wallet' }).first().click()
@@ -88,9 +179,22 @@ test('can create a wallet with a custom card style and open its details', async 
   await expect(page.getByText('Weekend cash')).not.toBeVisible()
 })
 
+test('reorders wallets and preserves the first position', async ({ page }) => {
+  await openUnlockedApp(page)
+  await page.goto('/wallets')
+
+  const firstWallet = page.locator('.wallets-page-grid > article.wallet-card').first()
+  await expect(firstWallet).toHaveAttribute('data-wallet-id', 'wallet-test-bpi')
+  await page.locator('[data-wallet-handle="wallet-test-bpi"]').press('ArrowDown')
+  await expect(page.locator('.wallets-page-grid > article.wallet-card').first()).toHaveAttribute('data-wallet-id', 'wallet-test-cash')
+
+  await page.reload()
+  await expect(page.locator('.wallets-page-grid > article.wallet-card').first()).toHaveAttribute('data-wallet-id', 'wallet-test-cash')
+})
+
 test('keeps the primary flow usable on a narrow viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/overview')
+  await openUnlockedApp(page)
 
   await expect(page.locator('.sidebar')).toBeHidden()
   await expect(page.locator('.mobile-nav')).toBeVisible()
@@ -125,6 +229,13 @@ test('starts authentication at the app entry and remembers the last email', asyn
   await expect(page.getByRole('heading', { name: 'Create your money space.' })).toBeVisible()
 })
 
+test('requires PIN access before opening a main route', async ({ page }) => {
+  await page.goto('/overview')
+
+  await expect(page).toHaveURL(/\/login$/)
+  await expect(page.getByRole('heading', { name: 'Create your money space.' })).toBeVisible()
+})
+
 test('validates a confirmed signup PIN', async ({ page }) => {
   await page.goto('/login')
   await page.getByLabel('Email address').fill('new-account@example.com')
@@ -138,6 +249,7 @@ test('validates a confirmed signup PIN', async ({ page }) => {
 })
 
 test('adjusts the profile picture size', async ({ page }) => {
+  await openUnlockedApp(page)
   await page.goto('/settings')
   await page.locator('input[type="file"]').first().setInputFiles({
     name: 'profile.png',
@@ -180,7 +292,8 @@ test('keeps the auth screens inside a mobile viewport', async ({ page }) => {
   expect(await fitsViewport()).toBe(true)
 })
 
-test('can start fresh without changing remote data', async ({ page }) => {
+test('can start fresh without changing account settings', async ({ page }) => {
+  await openUnlockedApp(page)
   await page.goto('/settings')
   await page.getByRole('button', { name: 'Start fresh' }).click()
   const dialog = page.getByRole('dialog')

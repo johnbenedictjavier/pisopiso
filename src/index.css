@@ -184,6 +184,12 @@ input, select, textarea { color: var(--ink); }
 .wallet-card:hover .wallet-card-shine { transform: translateX(170%) rotate(18deg); }
 .wallet-card-top, .wallet-card-footer { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .wallet-card-top { z-index: 4; }
+.wallet-card-top-actions { display: flex; align-items: center; gap: 5px; }
+.wallet-card-drag-handle { display: inline-grid; place-items: center; width: 29px; height: 29px; padding: 0; color: rgba(255,255,255,.7); background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); border-radius: 9px; cursor: grab; touch-action: none; }
+.wallet-card-drag-handle:hover, .wallet-card-drag-handle:focus-visible { color: #fff; background: rgba(255,255,255,.18); }
+.wallet-card-drag-handle:active { cursor: grabbing; }
+.wallet-card-dragging { opacity: .72; transform: scale(.98); }
+.wallet-card-drop-target { outline: 2px dashed rgba(255,255,255,.8); outline-offset: 4px; }
 .wallet-card-arrow { display: inline-grid; place-items: center; width: 29px; height: 29px; color: rgba(255,255,255,.82); background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.16); border-radius: 9px; }
 .wallet-card .row-action { color: rgba(255,255,255,.78); }
 .wallet-card .row-action:hover { color: #fff; background: rgba(255,255,255,.14); }
