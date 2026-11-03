@@ -3,7 +3,7 @@ import { ArrowDownLeft, ArrowUpRight, BarChart3, CalendarDays, ChevronRight, Cir
 import { Link } from 'react-router-dom'
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useFinance } from '../context/FinanceContext'
-import { compareTransactionsByOccurredAt, formatShortDate } from '../lib/dates'
+import { compareTransactionsByOccurredAtDesc, formatShortDate } from '../lib/dates'
 import { formatCurrency, formatSignedCurrency } from '../lib/money'
 import MetricCard from '../components/MetricCard'
 import AnimatedNumber from '../components/AnimatedNumber'
@@ -44,7 +44,7 @@ export default function OverviewPage() {
   const chartData = useMemo(() => buildCashflowData(transactions), [transactions])
   const topWallets = activeWallets.slice(0, 3)
   const firstName = state.profile.displayName.split(' ')[0]
-  const recentTransactions = useMemo(() => [...transactions].sort(compareTransactionsByOccurredAt).slice(-5).reverse(), [transactions])
+  const recentTransactions = useMemo(() => [...transactions].sort(compareTransactionsByOccurredAtDesc).slice(0, 5), [transactions])
 
   function editTransaction(transaction: Transaction): void {
     setSelectedTransaction(null)

@@ -9,7 +9,7 @@ import TransactionPagination, { TRANSACTION_PAGE_SIZE } from '../components/Tran
 import AnimatedNumber from '../components/AnimatedNumber'
 import { useFinance } from '../context/FinanceContext'
 import { downloadTransactionsCsv } from '../lib/csv'
-import { compareTransactionsByOccurredAt } from '../lib/dates'
+import { compareTransactionsByOccurredAtDesc } from '../lib/dates'
 import { formatCurrency } from '../lib/money'
 import { useShell } from '../layout/AppShell'
 import type { Transaction, TransactionType } from '../types'
@@ -35,7 +35,7 @@ export default function TransactionsPage() {
       const text = `${transaction.merchant} ${transaction.note} ${category?.name ?? ''}`.toLowerCase()
       return matchesType && matchesWallet && text.includes(query.toLowerCase())
     })
-    .sort(compareTransactionsByOccurredAt), [filter, query, state.categories, transactions, walletFilter])
+    .sort(compareTransactionsByOccurredAtDesc), [filter, query, state.categories, transactions, walletFilter])
 
   useEffect(() => {
     setPage(0)

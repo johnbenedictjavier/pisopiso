@@ -40,10 +40,10 @@ export function relativeLabel(value: string): string {
   return formatShortDate(value)
 }
 
-export function compareTransactionsByOccurredAt(left: Transaction, right: Transaction): number {
-  const occurredDifference = new Date(left.occurredAt).getTime() - new Date(right.occurredAt).getTime()
+export function compareTransactionsByOccurredAtDesc(left: Transaction, right: Transaction): number {
+  const occurredDifference = new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime()
   if (occurredDifference !== 0) return occurredDifference
 
-  const createdDifference = new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
-  return createdDifference !== 0 ? createdDifference : left.id.localeCompare(right.id)
+  const createdDifference = new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+  return createdDifference !== 0 ? createdDifference : right.id.localeCompare(left.id)
 }

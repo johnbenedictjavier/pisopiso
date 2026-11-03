@@ -199,7 +199,7 @@ test('can record an expense through the shared movement flow', async ({ page }) 
   await dialog.getByRole('tab', { name: 'Expense' }).click()
   await dialog.getByLabel('Amount').fill('120.50')
   await dialog.getByLabel('Merchant').fill('Neighborhood bakery')
-  await dialog.getByLabel('Date').fill('2024-12-31')
+  await dialog.getByLabel('Date').fill('2025-12-31')
   await dialog.getByRole('button', { name: 'Save expense' }).click()
 
   await expect(page.getByRole('status')).toContainText('Expense added.')
@@ -215,6 +215,7 @@ test('shows a useful empty state when filters have no results', async ({ page })
   await expect(page.getByRole('heading', { name: 'No movements found' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Clear filters' })).toBeVisible()
   await page.getByRole('button', { name: 'Clear filters' }).click()
+  await page.getByRole('button', { name: 'Next page' }).click()
   await expect(page.getByText('Monthly salary')).toBeVisible()
 })
 
@@ -239,7 +240,8 @@ test('edits income, expense, and linked transfer movements', async ({ page }) =>
   await openUnlockedApp(page)
   await page.goto('/transactions')
 
-  const editMovement = async (rowText: string, amount: string, saveLabel: string) => {
+  const editMovement = async (filter: 'Income' | 'Expense' | 'Transfer', rowText: string, amount: string, saveLabel: string) => {
+    await page.getByRole('button', { name: filter, exact: true }).click()
     await page.locator('.transaction-row').filter({ hasText: rowText }).first().click()
     const detailDialog = page.getByRole('dialog')
     await detailDialog.getByRole('button', { name: 'Edit movement' }).click()
@@ -249,11 +251,11 @@ test('edits income, expense, and linked transfer movements', async ({ page }) =>
     await expect(page.getByRole('status')).toBeVisible()
   }
 
-  await editMovement('Monthly salary', '70000', 'Update income')
+  await editMovement('Income', 'Monthly salary', '70000', 'Update income')
   await expect(page.getByRole('status')).toContainText('Income updated.')
-  await editMovement('Morning coffee', '130', 'Update expense')
+  await editMovement('Expense', 'Morning coffee', '130', 'Update expense')
   await expect(page.getByRole('status')).toContainText('Expense updated.')
-  await editMovement('To Cash on hand', '750', 'Update transfer')
+  await editMovement('Transfer', 'To Cash on hand', '750', 'Update transfer')
   await expect(page.getByRole('status')).toContainText('Transfer updated')
   await expect(page.getByText('-₱750.00')).toBeVisible()
   await expect(page.getByText('+₱750.00')).toBeVisible()
@@ -263,6 +265,7 @@ test('deletes both entries when removing a transfer from history', async ({ page
   await openUnlockedApp(page)
   await page.goto('/transactions')
 
+  await page.getByRole('button', { name: 'Transfer', exact: true }).click()
   await page.locator('.transaction-row').filter({ hasText: 'To Cash on hand' }).first().click()
   const detailDialog = page.getByRole('dialog')
   await expect(detailDialog.getByRole('button', { name: 'Edit movement' })).toBeVisible()
@@ -274,6 +277,7 @@ test('deletes both entries when removing a transfer from history', async ({ page
   await expect(page.getByRole('status')).toContainText('Movement removed.')
   await expect(page.locator('.transaction-row').filter({ hasText: 'To Cash on hand' })).toHaveCount(0)
   await expect(page.locator('.transaction-row').filter({ hasText: 'From BPI Everyday' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'All', exact: true }).click()
   await expect(page.getByText('1-10 of 11', { exact: true })).toBeVisible()
 })
 
