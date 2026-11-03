@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Check, Delete, LockKeyhole, Mail } from 'lucide-
 import { useNavigate } from 'react-router-dom'
 import BrandMark from '../components/BrandMark'
 import { useFinance } from '../context/FinanceContext'
+import { buildAuthPassword } from '../lib/auth'
 import { getSupabase } from '../lib/supabase'
 
 const PIN_LENGTH = 6
@@ -23,6 +24,16 @@ function getRememberedEmail(): string {
 
 function rememberEmail(email: string): void {
   if (typeof window !== 'undefined') window.localStorage.setItem(LAST_EMAIL_STORAGE_KEY, email)
+}
+
+function describeAuthError(message: string, mode: AuthMode): string {
+  const normalized = message.toLowerCase()
+  if (mode === 'sign-up' && /already|registered|exists/.test(normalized)) return 'An account with this email already exists. Try signing in.'
+  if (/email signups are disabled|signup is disabled/.test(normalized)) return 'Email signup is disabled in Supabase. Enable the Email provider to create an account.'
+  if (/rate limit|too many requests/.test(normalized)) return 'Too many signup attempts. Wait a moment and try again.'
+  if (/error sending confirmation|sending.*email|smtp/.test(normalized)) return 'The account was not created because the confirmation email could not be sent. Check Supabase email settings.'
+  if (/password/.test(normalized)) return 'Supabase rejected the account credentials. Try creating the account again.'
+  return mode === 'sign-in' ? `That email and PIN combination did not work. (${message})` : `Account creation failed: ${message}`
 }
 
 export default function AuthPage() {
@@ -124,20 +135,24 @@ export default function AuthPage() {
       }
       const normalizedEmail = email.trim().toLowerCase()
       rememberEmail(normalizedEmail)
+      const authPassword = buildAuthPassword(normalizedEmail, pin)
       const result = authMode === 'sign-in'
-        ? await client.auth.signInWithPassword({ email: normalizedEmail, password: pin })
+        ? await client.auth.signInWithPassword({ email: normalizedEmail, password: authPassword })
         : await client.auth.signUp({
             email: normalizedEmail,
-            password: pin,
+            password: authPassword,
             options: { emailRedirectTo: `${window.location.origin}/login` },
           })
-      if (result.error) {
-        const duplicateAccount = authMode === 'sign-up' && /already|registered|exists/i.test(result.error.message)
-        setError(duplicateAccount ? 'An account with this email already exists. Try signing in.' : authMode === 'sign-in' ? 'That email and PIN combination did not work.' : 'We could not create that account. Check your details and try again.')
+      let authResult = result
+      if (authMode === 'sign-in' && authResult.error && /invalid login credentials/i.test(authResult.error.message)) {
+        authResult = await client.auth.signInWithPassword({ email: normalizedEmail, password: pin })
+      }
+      if (authResult.error) {
+        setError(describeAuthError(authResult.error.message, authMode))
         return
       }
-      if (result.data.user) updateProfileIdentity(result.data.user.id, result.data.user.email ?? normalizedEmail)
-      if (authMode === 'sign-up' && !result.data.session) {
+      if (authResult.data.user) updateProfileIdentity(authResult.data.user.id, authResult.data.user.email ?? normalizedEmail)
+      if (authMode === 'sign-up' && !authResult.data.session) {
         setNotice('Check your email to finish creating your account, then sign in with your PIN.')
         setStep('email')
         setPin('')
