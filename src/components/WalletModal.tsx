@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, Check, ChevronDown, ImagePlus, Palette, Paintbrush, Plus, Trash2, WalletCards } from 'lucide-react'
+import { Camera, Check, ChevronDown, Crop, ImagePlus, Palette, Paintbrush, Plus, Trash2, WalletCards } from 'lucide-react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Modal from './Modal'
@@ -136,13 +136,12 @@ export default function WalletModal({ open, onClose, onSuccess, wallet = null }:
             <button className="wallet-logo-preview" type="button" style={{ '--wallet-accent': selectedColor } as React.CSSProperties} onClick={() => logoUrl && setCropOpen(true)} aria-label={logoUrl ? 'Crop wallet logo' : 'Wallet logo preview'}>
               {logoUrl ? <img src={logoUrl} alt="Wallet logo preview" style={{ transform: imageTransform(logoScale, logoPositionX, logoPositionY) }} /> : <WalletCards size={28} />}
             </button>
-           <div className="wallet-logo-copy"><span className="section-kicker">Custom wallet logo</span><strong>{logoUrl ? 'Custom logo added.' : 'Make it unmistakably yours.'}</strong><small>Upload an image or take one with your camera. JPG, PNG, or WebP.</small><div className="wallet-logo-actions"><button className="button button-secondary button-small" type="button" onClick={() => fileInput.current?.click()} disabled={logoBusy}><ImagePlus size={15} /> Choose image</button><button className="button button-quiet button-small" type="button" onClick={() => cameraInput.current?.click()} disabled={logoBusy}><Camera size={15} /> Use camera</button>{logoUrl && <button className="icon-button icon-button-small" type="button" aria-label="Remove wallet logo" onClick={() => { setLogoUrl(null); setLogoName(null); setLogoScale(1); setLogoPositionX(0); setLogoPositionY(0) }}><Trash2 size={15} /></button>}</div></div>
+           <div className="wallet-logo-copy"><span className="section-kicker">Custom wallet logo</span><strong>{logoUrl ? 'Custom logo added.' : 'Make it unmistakably yours.'}</strong><small>Upload an image or take one with your camera. JPG, PNG, or WebP.</small><div className="wallet-logo-actions"><button className="button button-secondary button-small" type="button" onClick={() => fileInput.current?.click()} disabled={logoBusy}><ImagePlus size={15} /> Choose image</button><button className="icon-button icon-button-small" type="button" onClick={() => cameraInput.current?.click()} disabled={logoBusy} aria-label="Use camera" title="Use camera"><Camera size={15} /></button>{logoUrl && <><button className="icon-button icon-button-small" type="button" aria-label="Crop wallet logo" title="Crop wallet logo" onClick={() => setCropOpen(true)}><Crop size={15} /></button><button className="icon-button icon-button-small" type="button" aria-label="Remove wallet logo" title="Remove wallet logo" onClick={() => { setLogoUrl(null); setLogoName(null); setLogoScale(1); setLogoPositionX(0); setLogoPositionY(0) }}><Trash2 size={15} /></button></>}</div></div>
           <input ref={fileInput} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { void handleLogo(event.target.files?.[0]); event.currentTarget.value = '' }} />
           <input ref={cameraInput} className="sr-only" type="file" accept="image/*" capture="environment" onChange={(event) => { void handleLogo(event.target.files?.[0]); event.currentTarget.value = '' }} />
         </div>
         {logoBusy && <div className="upload-status">Preparing your logo…</div>}
          {logoError && <div className="form-alert">{logoError}</div>}
-         {logoUrl && <button className="button button-quiet button-small image-crop-open" type="button" onClick={() => setCropOpen(true)}>Crop logo</button>}
         <label className="field">
           <span>Wallet name</span>
           <input placeholder="e.g. BPI Everyday" autoComplete="off" {...form.register('name')} />

@@ -1,24 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { Plus, WalletCards } from 'lucide-react'
-import ConfirmModal from '../components/ConfirmModal'
 import EmptyState from '../components/EmptyState'
 import WalletCard from '../components/WalletCard'
 import WalletModal from '../components/WalletModal'
 import AnimatedNumber from '../components/AnimatedNumber'
 import { useFinance } from '../context/FinanceContext'
-import { formatCurrency } from '../lib/money'
 import { useShell } from '../layout/AppShell'
-import type { Wallet } from '../types'
+import { formatCurrency } from '../lib/money'
 
 const WALLET_GRAB_DELAY_MS = 2000
 type WalletDragState = { walletId: string; pointerId: number; pointerType: string; target: HTMLElement; startX: number; startY: number; grabbed: boolean; holdTimer: number | null; touchMoveGuard: ((event: TouchEvent) => void) | null }
 
 export default function WalletsPage() {
-  const { activeWallets, getWalletBalance, archiveWallet, reorderWallets } = useFinance()
+  const { activeWallets, getWalletBalance, reorderWallets } = useFinance()
   const { notify } = useShell()
   const [modalOpen, setModalOpen] = useState(false)
-  const [editingWallet, setEditingWallet] = useState<Wallet | null>(null)
-  const [archiveTarget, setArchiveTarget] = useState<Wallet | null>(null)
   const [pressingWalletId, setPressingWalletId] = useState<string | null>(null)
   const [draggingWalletId, setDraggingWalletId] = useState<string | null>(null)
   const [dropTargetId, setDropTargetId] = useState<string | null>(null)
@@ -35,25 +31,11 @@ export default function WalletsPage() {
   }, [])
 
   function openAdd(): void {
-    setEditingWallet(null)
-    setModalOpen(true)
-  }
-
-  function openEdit(wallet: Wallet): void {
-    setEditingWallet(wallet)
     setModalOpen(true)
   }
 
   function closeModal(): void {
     setModalOpen(false)
-    setEditingWallet(null)
-  }
-
-  function confirmArchive(): void {
-    if (!archiveTarget) return
-    archiveWallet(archiveTarget.id)
-    notify(`${archiveTarget.name} was archived.`)
-    setArchiveTarget(null)
   }
 
   function walletIdAtPoint(clientX: number, clientY: number): string | null {
@@ -167,10 +149,9 @@ export default function WalletsPage() {
     <div className="page-stack">
       <section className="page-intro-row"><div><h2 className="page-section-title">Wallets</h2><span className="section-subtitle">{activeWallets.length} active</span></div></section>
       <section className="wallet-summary-strip"><div><span className="section-kicker">Total balance</span><strong><AnimatedNumber value={total} format={(amount) => formatCurrency(Math.round(amount))} /></strong></div><span className="wallet-summary-count"><WalletCards size={17} /> {activeWallets.length} active wallets</span></section>
-      {activeWallets.length ? <section className="wallets-page-grid" aria-label="Reorderable wallets">{activeWallets.map((wallet) => <WalletCard key={wallet.id} wallet={wallet} featured onEdit={openEdit} onArchive={setArchiveTarget} reorderable pressing={pressingWalletId === wallet.id} dragging={draggingWalletId === wallet.id} dropTarget={dropTargetId === wallet.id} onReorderClick={() => suppressClickRef.current === wallet.id} onReorderPointerDown={(event) => beginWalletDrag(wallet.id, event)} onReorderPointerMove={moveWalletDrag} onReorderPointerUp={finishWalletDrag} onReorderPointerCancel={(event) => finishWalletDrag(event, true)} onReorderKeyDown={(event) => moveWalletWithKeyboard(wallet.id, event)} />)}<button className="add-wallet-card add-wallet-card-large" type="button" onClick={openAdd}><span><Plus size={20} /></span><strong>Add another wallet</strong></button></section> : <EmptyState title="Add your first wallet" description="Start with a bank account, cash, or any account you track." action={{ label: 'Add wallet', onClick: openAdd }} />}
+      {activeWallets.length ? <section className="wallets-page-grid" aria-label="Reorderable wallets">{activeWallets.map((wallet) => <WalletCard key={wallet.id} wallet={wallet} featured reorderable pressing={pressingWalletId === wallet.id} dragging={draggingWalletId === wallet.id} dropTarget={dropTargetId === wallet.id} onReorderClick={() => suppressClickRef.current === wallet.id} onReorderPointerDown={(event) => beginWalletDrag(wallet.id, event)} onReorderPointerMove={moveWalletDrag} onReorderPointerUp={finishWalletDrag} onReorderPointerCancel={(event) => finishWalletDrag(event, true)} onReorderKeyDown={(event) => moveWalletWithKeyboard(wallet.id, event)} />)}<button className="add-wallet-card add-wallet-card-large" type="button" onClick={openAdd}><span><Plus size={20} /></span><strong>Add another wallet</strong></button></section> : <EmptyState title="Add your first wallet" description="Start with a bank account, cash, or any account you track." action={{ label: 'Add wallet', onClick: openAdd }} />}
       <span className="sr-only" role="status" aria-live="polite">{reorderStatus}</span>
-      <WalletModal open={modalOpen} wallet={editingWallet} onClose={closeModal} onSuccess={(message) => { closeModal(); notify(message) }} />
-      <ConfirmModal open={Boolean(archiveTarget)} title="Archive wallet?" message={archiveTarget ? `${archiveTarget.name} will disappear from active wallets, but its history will stay available.` : ''} confirmLabel="Archive" danger onClose={() => setArchiveTarget(null)} onConfirm={confirmArchive} />
+       <WalletModal open={modalOpen} onClose={closeModal} onSuccess={(message) => { closeModal(); notify(message) }} />
     </div>
   )
 }

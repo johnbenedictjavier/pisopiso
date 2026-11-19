@@ -68,7 +68,7 @@ export default function SettingsPage() {
                 <small>{avatarUrl ? 'Custom photo added.' : 'Add a photo to make the space yours.'}</small>
                 <div className="profile-photo-actions">
                   <button className="button button-secondary button-small" type="button" onClick={() => fileInput.current?.click()} disabled={avatarBusy}><ImagePlus size={14} /> Choose</button>
-                  <button className="button button-quiet button-small" type="button" onClick={() => cameraInput.current?.click()} disabled={avatarBusy}><Camera size={14} /> Camera</button>
+                  <button className="icon-button icon-button-small" type="button" onClick={() => cameraInput.current?.click()} disabled={avatarBusy} aria-label="Use camera" title="Use camera"><Camera size={15} /></button>
                   {avatarUrl && <>
                     <button className="icon-button icon-button-small" type="button" aria-label="Crop profile photo" title="Crop profile photo" onClick={() => setCropOpen(true)}><Crop size={15} /></button>
                     <button className="icon-button icon-button-small" type="button" aria-label="Remove profile picture" title="Remove profile picture" onClick={() => { setAvatarUrl(null); setAvatarName(null); setAvatarScale(1); setAvatarPositionX(0); setAvatarPositionY(0); setCropOpen(false) }}><Trash2 size={15} /></button>

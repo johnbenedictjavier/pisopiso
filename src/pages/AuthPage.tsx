@@ -128,6 +128,7 @@ export default function AuthPage() {
     }
     setBusy(true)
     setError('')
+    let redirecting = false
     try {
       const client = await getSupabase()
       if (!client) {
@@ -163,12 +164,14 @@ export default function AuthPage() {
         return
       }
       loadUserState(authResult.data.user.id, authResult.data.user.email ?? normalizedEmail)
+      redirecting = true
       unlock()
       navigate('/overview', { replace: true })
     } catch {
+      redirecting = false
       setError('Something went wrong. Please try again.')
     } finally {
-      setBusy(false)
+      if (!redirecting) setBusy(false)
     }
   }
 
