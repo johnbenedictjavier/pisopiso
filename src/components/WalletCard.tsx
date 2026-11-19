@@ -1,10 +1,9 @@
-import { Archive, ArrowUpRight, CreditCard, MoreHorizontal, Pencil, WalletCards } from 'lucide-react'
-import { useState } from 'react'
+import { Archive, ArrowUpRight, CreditCard, Pencil } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useFinance } from '../context/FinanceContext'
 import { formatCurrency } from '../lib/money'
 import AnimatedNumber from './AnimatedNumber'
-import { walletTypeLabels } from '../types'
+import WalletLogo from './WalletLogo'
 import type { Wallet } from '../types'
 
 interface WalletCardProps {
@@ -28,7 +27,6 @@ interface WalletCardProps {
 export default function WalletCard({ wallet, featured = false, onEdit, onArchive, interactive = true, reorderable = false, pressing = false, dragging = false, dropTarget = false, onReorderClick, onReorderPointerDown, onReorderPointerMove, onReorderPointerUp, onReorderPointerCancel, onReorderKeyDown }: WalletCardProps) {
   const { getWalletBalance } = useFinance()
   const navigate = useNavigate()
-  const [menuOpen, setMenuOpen] = useState(false)
   const balance = getWalletBalance(wallet.id)
   const hasActions = Boolean(onEdit || onArchive)
 
@@ -37,23 +35,19 @@ export default function WalletCard({ wallet, featured = false, onEdit, onArchive
       <span className="wallet-card-shine" aria-hidden="true" />
       <div className="wallet-card-top">
         <div className="wallet-card-identity">
-          <span className="wallet-card-mark" aria-hidden="true"><WalletCards size={featured ? 19 : 17} strokeWidth={1.8} /></span>
+          <WalletLogo logoUrl={wallet.logoUrl} logoScale={wallet.logoScale} logoPositionX={wallet.logoPositionX} logoPositionY={wallet.logoPositionY} name={wallet.name} color={wallet.color} size={featured ? 'large' : 'medium'} />
           <div className="wallet-card-identity-copy"><span>Wallet</span><strong>{wallet.name}</strong></div>
         </div>
         {hasActions ? (
           <div className="wallet-card-actions" onPointerDown={(event) => event.stopPropagation()}>
-            <button className="row-action" type="button" aria-label={`Wallet actions for ${wallet.name}`} aria-haspopup="menu" aria-expanded={menuOpen} onClick={(event) => { event.stopPropagation(); setMenuOpen((current) => !current) }} onKeyDown={(event) => event.stopPropagation()}><MoreHorizontal size={18} /></button>
-            {menuOpen && <div className="wallet-card-menu" role="menu" onClick={(event) => event.stopPropagation()}>
-              {onEdit && <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onEdit(wallet) }}><Pencil size={14} /> Edit</button>}
-              {onArchive && <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onArchive(wallet) }}><Archive size={14} /> Archive</button>}
-            </div>}
+            {onEdit && <button className="row-action wallet-card-action" type="button" aria-label={`Edit ${wallet.name}`} title={`Edit ${wallet.name}`} onClick={(event) => { event.stopPropagation(); onEdit(wallet) }} onKeyDown={(event) => event.stopPropagation()}><Pencil size={16} /></button>}
+            {onArchive && <button className="row-action wallet-card-action" type="button" aria-label={`Archive ${wallet.name}`} title={`Archive ${wallet.name}`} onClick={(event) => { event.stopPropagation(); onArchive(wallet) }} onKeyDown={(event) => event.stopPropagation()}><Archive size={16} /></button>}
           </div>
         ) : <span className="wallet-card-arrow"><ArrowUpRight size={17} /></span>}
       </div>
       <div className="wallet-card-content">
         <span>Available balance</span>
         <strong><AnimatedNumber value={balance} format={(amount) => formatCurrency(Math.round(amount))} /></strong>
-        <small>{walletTypeLabels[wallet.type]}</small>
       </div>
       <div className="wallet-card-footer">
         <span className="wallet-type"><CreditCard size={13} /> <span>•••• {wallet.id.slice(-4).toUpperCase()}</span></span>

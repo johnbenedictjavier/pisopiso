@@ -25,6 +25,8 @@ export default function WalletCarousel({ wallets }: WalletCarouselProps) {
 
   const safeActiveIndex = Math.min(activeIndex, wallets.length - 1)
   const activeWallet = wallets[safeActiveIndex]
+  const previousWallet = wallets[(safeActiveIndex - 1 + wallets.length) % wallets.length]
+  const nextWallet = wallets[(safeActiveIndex + 1) % wallets.length]
 
   return (
     <div className="wallet-carousel" onTouchStart={(event) => { touchStartX.current = event.changedTouches[0]?.clientX ?? null }} onTouchEnd={(event) => {
@@ -34,8 +36,16 @@ export default function WalletCarousel({ wallets }: WalletCarouselProps) {
       if (startX !== null && Math.abs(endX - startX) > 35) move(endX < startX ? 1 : -1)
     }} onTouchCancel={() => { touchStartX.current = null }}>
       <div className="wallet-carousel-viewport" aria-live="polite">
-        <div key={activeWallet.id} className={`wallet-carousel-item wallet-carousel-item-active wallet-carousel-item-${transitionDirection}`}>
-          <WalletCard wallet={activeWallet} />
+        {wallets.length > 1 && <>
+          <div className="wallet-carousel-item wallet-carousel-item-previous" aria-hidden="true">
+            <WalletCard wallet={previousWallet} interactive={false} />
+          </div>
+          <div className="wallet-carousel-item wallet-carousel-item-next" aria-hidden="true">
+            <WalletCard wallet={nextWallet} interactive={false} />
+          </div>
+        </>}
+        <div key={activeWallet.id} className={`wallet-carousel-item wallet-carousel-item-active wallet-carousel-transition-${transitionDirection}`}>
+          <WalletCard wallet={activeWallet} featured />
         </div>
       </div>
       {wallets.length > 1 && <div className="wallet-carousel-controls">

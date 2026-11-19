@@ -24,7 +24,7 @@ export default function WalletLogo({ name, color, logoUrl, logoScale = 1, logoPo
   return (
     <span
       className={`wallet-logo wallet-logo-${size}`}
-      style={{ backgroundColor: logoUrl ? '#ffffff' : color ?? '#5f8068' }}
+      style={{ '--wallet-logo-color': color ?? '#5f8068' } as React.CSSProperties}
       role="img"
       aria-label={`${label} logo`}
       title={label}
