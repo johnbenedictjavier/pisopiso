@@ -42,7 +42,6 @@ interface FinanceContextValue {
   loadUserState: (id: string, email: string) => void
   updateAvatar: (avatarUrl: string | null, avatarName: string | null, avatarScale: number, avatarPositionX: number, avatarPositionY: number) => void
   reorderWallets: (walletId: string, targetWalletId: string) => void
-  startFresh: () => void
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null)
@@ -145,8 +144,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       note: input.note.trim(),
       occurredAt,
       transferGroupId: groupId,
-      receiptName: null,
-      receiptUrl: null,
+      receiptName: input.receiptName ?? null,
+      receiptUrl: input.receiptUrl ?? null,
     }
     const outgoing = createTransaction({
       ...shared,
@@ -227,6 +226,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           categoryId: null,
           merchant: 'Wallet transfer',
           relatedWalletId: isOutgoing ? input.toWalletId : input.fromWalletId,
+          receiptName: input.receiptName ?? transaction.receiptName,
+          receiptUrl: input.receiptUrl ?? transaction.receiptUrl,
         }
       }),
     }))
@@ -333,10 +334,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     })
   }
 
-  function startFresh(): void {
-    setState((current) => ({ ...current, wallets: [], transactions: [] }))
-  }
-
   const value: FinanceContextValue = {
     state,
     activeWallets,
@@ -357,7 +354,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     loadUserState,
     updateAvatar,
     reorderWallets,
-    startFresh,
   }
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>

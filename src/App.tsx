@@ -17,7 +17,8 @@ function PageLoader() {
 }
 
 function ProtectedAppShell() {
-  const { isLocked } = useAuthLock()
+  const { isLocked, isInitializing } = useAuthLock()
+  if (isInitializing) return <PageLoader />
   return isLocked ? <Navigate to="/login" replace /> : <AppShell />
 }
 

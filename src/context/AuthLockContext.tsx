@@ -1,9 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { APP_LOCK_TIMEOUT_MS, shouldLockAfterBackground } from '../lib/appLock'
 import { getTestSessionUser } from '../lib/testSession'
+import { getSupabase } from '../lib/supabase'
+import { useFinance } from './FinanceContext'
 
 interface AuthLockContextValue {
   isLocked: boolean
+  isInitializing: boolean
   lock: () => void
   unlock: () => void
 }
@@ -11,7 +14,9 @@ interface AuthLockContextValue {
 const AuthLockContext = createContext<AuthLockContextValue | null>(null)
 
 export function AuthLockProvider({ children }: { children: ReactNode }) {
+  const { loadUserState } = useFinance()
   const [isLocked, setIsLocked] = useState(() => !getTestSessionUser())
+  const [isInitializing, setIsInitializing] = useState(() => !getTestSessionUser())
   const isLockedRef = useRef(!getTestSessionUser())
   const hiddenAtRef = useRef<number | null>(null)
   const timeoutRef = useRef<number | null>(null)
@@ -40,6 +45,55 @@ export function AuthLockProvider({ children }: { children: ReactNode }) {
     isLockedRef.current = false
     setIsLocked(false)
   }, [clearBackgroundTimer])
+
+  useEffect(() => {
+    let cancelled = false
+    let subscription: { unsubscribe: () => void } | null = null
+
+    async function restoreSession(): Promise<void> {
+      const testUser = getTestSessionUser()
+      if (testUser) {
+        loadUserState(testUser.id, testUser.email)
+        unlock()
+        setIsInitializing(false)
+        return
+      }
+
+      const client = await getSupabase()
+      if (cancelled) return
+      if (!client) {
+        setIsInitializing(false)
+        return
+      }
+
+      const { data } = await client.auth.getSession()
+      if (cancelled) return
+      if (data.session?.user) {
+        loadUserState(data.session.user.id, data.session.user.email ?? '')
+        unlock()
+      } else {
+        lock()
+      }
+      setIsInitializing(false)
+
+      const authState = client.auth.onAuthStateChange((_event, session) => {
+        if (cancelled) return
+        if (session?.user) {
+          loadUserState(session.user.id, session.user.email ?? '')
+          unlock()
+        } else {
+          lock()
+        }
+      })
+      subscription = authState.data.subscription
+    }
+
+    void restoreSession()
+    return () => {
+      cancelled = true
+      subscription?.unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
     function beginBackgroundTimer(): void {
@@ -74,7 +128,7 @@ export function AuthLockProvider({ children }: { children: ReactNode }) {
     }
   }, [clearBackgroundTimer, lock])
 
-  return <AuthLockContext.Provider value={{ isLocked, lock, unlock }}>{children}</AuthLockContext.Provider>
+  return <AuthLockContext.Provider value={{ isLocked, isInitializing, lock, unlock }}>{children}</AuthLockContext.Provider>
 }
 
 export function useAuthLock(): AuthLockContextValue {

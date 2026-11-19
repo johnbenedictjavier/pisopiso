@@ -16,7 +16,7 @@ import Toast from '../components/Toast'
 import TransactionModal from '../components/TransactionModal'
 
 export interface ShellContext {
-  openQuickAdd: () => void
+  openQuickAdd: (walletId?: string) => void
   notify: (message: string) => void
 }
 
@@ -39,6 +39,8 @@ export default function AppShell() {
   const location = useLocation()
   const { state } = useFinance()
   const [quickAddOpen, setQuickAddOpen] = useState(false)
+  const [quickAddWalletId, setQuickAddWalletId] = useState<string | undefined>()
+  const detailWalletId = location.pathname.match(/^\/wallets\/([^/]+)/)?.[1]
   const [toast, setToast] = useState<string | null>(null)
   const page = location.pathname.startsWith('/wallets/')
     ? { title: 'Wallet details', eyebrow: 'PisoPiso' }
@@ -51,7 +53,10 @@ export default function AppShell() {
   }, [toast])
 
   const context: ShellContext = {
-    openQuickAdd: () => setQuickAddOpen(true),
+    openQuickAdd: (walletId) => {
+      setQuickAddWalletId(walletId)
+      setQuickAddOpen(true)
+    },
     notify: setToast,
   }
 
@@ -111,11 +116,11 @@ export default function AppShell() {
               </NavLink>
             ))}
           </div>
-          <div className="mobile-nav-add-wrap"><button className="mobile-nav-add" type="button" aria-label="Add transaction" onClick={() => setQuickAddOpen(true)}><Plus size={24} /></button></div>
+           <div className="mobile-nav-add-wrap"><button className="mobile-nav-add" type="button" aria-label="Add transaction" onClick={() => { setQuickAddWalletId(detailWalletId); setQuickAddOpen(true) }}><Plus size={24} /></button></div>
         </nav>
       </div>
 
-      <TransactionModal open={quickAddOpen} onClose={() => setQuickAddOpen(false)} onSuccess={(message) => { setQuickAddOpen(false); setToast(message) }} />
+       <TransactionModal walletId={quickAddWalletId} open={quickAddOpen} onClose={() => { setQuickAddOpen(false); setQuickAddWalletId(undefined) }} onSuccess={(message) => { setQuickAddOpen(false); setQuickAddWalletId(undefined); setToast(message) }} />
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </div>
   )

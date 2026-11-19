@@ -40,8 +40,8 @@ export default function TransactionDetailModal({ transaction, onClose, onEdit, o
            </div>
            <div className="transaction-detail-footnote">Recorded as {formatCurrency(transaction.amountCents)} · {transaction.receiptName ?? 'No attachment'}</div>
            <div className="modal-actions">
-             {onEdit && <button className="button button-secondary" type="button" onClick={() => onEdit(transaction)}><Pencil size={15} /> Edit movement</button>}
-             {onDelete && <button className="button button-danger" type="button" onClick={() => onDelete(transaction)}><Trash2 size={15} /> Delete movement</button>}
+              {onEdit && <button className="icon-button transaction-detail-edit" type="button" onClick={() => onEdit(transaction)} aria-label="Edit movement" title="Edit movement"><Pencil size={17} /></button>}
+              {onDelete && <button className="icon-button transaction-detail-delete" type="button" onClick={() => onDelete(transaction)} aria-label="Delete movement" title="Delete movement"><Trash2 size={17} /></button>}
              <button className="button button-quiet" type="button" onClick={onClose}>Close</button>
            </div>
          </div>

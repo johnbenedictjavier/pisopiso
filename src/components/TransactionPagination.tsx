@@ -6,13 +6,14 @@ interface TransactionPaginationProps {
   total: number
   page: number
   onPageChange: (page: number) => void
+  pageSize?: number
 }
 
-export default function TransactionPagination({ total, page, onPageChange }: TransactionPaginationProps) {
-  const pageCount = Math.ceil(total / TRANSACTION_PAGE_SIZE)
+export default function TransactionPagination({ total, page, onPageChange, pageSize = TRANSACTION_PAGE_SIZE }: TransactionPaginationProps) {
+  const pageCount = Math.ceil(total / pageSize)
   const currentPage = total === 0 ? 0 : page + 1
-  const firstItem = total === 0 ? 0 : page * TRANSACTION_PAGE_SIZE + 1
-  const lastItem = total === 0 ? 0 : Math.min((page + 1) * TRANSACTION_PAGE_SIZE, total)
+  const firstItem = total === 0 ? 0 : page * pageSize + 1
+  const lastItem = total === 0 ? 0 : Math.min((page + 1) * pageSize, total)
   const canGoPrevious = total > 0 && page > 0
   const canGoNext = total > 0 && page < pageCount - 1
 

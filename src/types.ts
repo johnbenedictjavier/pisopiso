@@ -102,6 +102,8 @@ export interface AddTransferInput {
   amountCents: number
   note: string
   occurredAt: string
+  receiptName?: string | null
+  receiptUrl?: string | null
 }
 
 export type UpdateTransferInput = AddTransferInput

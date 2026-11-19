@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-After signing in with Supabase, wallets and movements start empty and are persisted in browser storage scoped to that account. They can be cleared from Settings. The app does not ship with demo wallets or demo movements.
+After signing in with Supabase, wallets and movements start empty and are persisted in browser storage scoped to that account. The app does not expose a destructive reset control in Settings and does not ship with demo wallets or demo movements.
 
 The production build is installable as a standalone web app on supported phones and browsers.
 
@@ -44,4 +44,4 @@ Import the repository as a Vite project and add `VITE_SUPABASE_URL` and `VITE_SU
 - `src/lib/ledger.ts` contains the pure balance and overdraft rules shared by tests and the adapter.
 - `src/data/` contains the empty account defaults and category catalog.
 - `src/pages/` contains the Overview, Wallets, Transactions, Dashboard, Settings, and email/PIN auth entry points.
-- Wallets accept user-provided logos with a saved display-size adjustment and use a local initials fallback when no logo is attached.
+- Wallets accept user-provided logos with an in-app crop flow and use a local initials fallback when no logo is attached.

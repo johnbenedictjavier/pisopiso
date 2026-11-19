@@ -190,7 +190,8 @@ test('filters the dashboard and downloads a dashboard image', async ({ page }) =
 
 test('can record an expense through the shared movement flow', async ({ page }) => {
   await openUnlockedApp(page)
-  await page.getByRole('button', { name: 'Log something' }).click()
+  await page.goto('/transactions')
+  await page.getByRole('button', { name: 'Add movement' }).first().click()
 
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByRole('heading', { name: 'Add a movement' })).toBeVisible()
@@ -285,31 +286,63 @@ test('paginates wallet transaction history', async ({ page }) => {
   await openUnlockedApp(page)
   await page.goto('/wallets/wallet-test-bpi')
 
-  await expect(page.getByText('1-10 of 12', { exact: true })).toBeVisible()
+  await expect(page.getByText('1-5 of 12', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Next page' }).click()
+  await expect(page.getByText('6-10 of 12', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Next page' }).click()
   await expect(page.getByText('11-12 of 12', { exact: true })).toBeVisible()
+})
+
+test('defaults wallet-detail movement fields to the wallet being viewed', async ({ page }) => {
+  await openUnlockedApp(page)
+  await page.goto('/wallets/wallet-test-cash')
+  await page.getByRole('button', { name: 'Add movement' }).click()
+
+  const dialog = page.getByRole('dialog', { name: /Add a movement/ })
+  await expect(dialog.getByLabel('Paid from')).toHaveValue('wallet-test-cash')
+  await dialog.getByRole('tab', { name: 'Income' }).click()
+  await expect(dialog.getByLabel('Added to')).toHaveValue('wallet-test-cash')
+  await dialog.getByRole('tab', { name: 'Transfer' }).click()
+  await expect(dialog.getByLabel('From wallet')).toHaveValue('wallet-test-cash')
+  await expect(dialog.getByLabel('To wallet')).not.toHaveValue('wallet-test-cash')
+})
+
+test('supports receipt attachments on transfers', async ({ page }) => {
+  await openUnlockedApp(page)
+  await page.goto('/transactions')
+  await page.getByRole('button', { name: 'Add movement' }).first().click()
+
+  const dialog = page.getByRole('dialog', { name: /Add a movement/ })
+  await dialog.getByRole('tab', { name: 'Transfer' }).click()
+  await expect(dialog.getByRole('button', { name: 'Choose image' })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Use camera' })).toBeVisible()
+  await dialog.locator('input[type="file"]').first().setInputFiles({
+    name: 'transfer-receipt.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
+  })
+  await expect(dialog.getByText('transfer-receipt.png')).toBeVisible()
+  await dialog.getByLabel('Amount').fill('100')
+  await dialog.getByRole('button', { name: 'Save transfer' }).click()
+  await expect(page.getByRole('status')).toContainText('Transfer recorded')
+  await expect(page.getByLabel('Receipt attached')).toHaveCount(2)
 })
 
 test('can create a wallet with a custom card style and open its details', async ({ page }) => {
   await openUnlockedApp(page)
   await page.goto('/wallets')
   await expect(page.getByRole('heading', { name: 'Wallets' }).first()).toBeVisible()
-  await page.getByRole('button', { name: 'Add wallet' }).first().click()
-  const dialog = page.getByRole('dialog')
+  await page.getByRole('button', { name: 'Add another wallet' }).click()
+  const dialog = page.getByRole('dialog', { name: /Add a wallet/ })
   await dialog.getByLabel('Wallet name').fill('Weekend cash')
   await dialog.locator('input[type="file"]').first().setInputFiles({
     name: 'weekend-logo.png',
     mimeType: 'image/png',
     buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
   })
-  const logoSize = dialog.getByRole('slider', { name: 'Logo size' })
-  await expect(logoSize).toBeVisible()
-  await logoSize.fill('1.25')
-  await expect(dialog.getByText('125%')).toBeVisible()
-  await dialog.getByRole('slider', { name: 'Logo horizontal position' }).fill('18')
-  await dialog.getByRole('slider', { name: 'Logo vertical position' }).fill('-12')
-  await expect(dialog.getByText('+18%')).toBeVisible()
-  await expect(dialog.getByText('-12%')).toBeVisible()
+  const cropDialog = page.getByRole('dialog', { name: /Crop wallet logo/ })
+  await expect(cropDialog.getByText('Drag the image to reposition it.')).toBeVisible()
+  await cropDialog.getByRole('button', { name: 'Use crop' }).click()
   await expect(dialog.getByText('weekend-logo.png')).toHaveCount(0)
   await dialog.getByRole('radio', { name: 'Ocean' }).click()
   await dialog.getByRole('button', { name: 'Add wallet' }).click()
@@ -364,9 +397,13 @@ test('keeps the primary flow usable on a narrow viewport', async ({ page }) => {
   await expect(page.locator('.sidebar')).toBeHidden()
   await expect(page.locator('.mobile-nav')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Add transaction' }).first()).toBeVisible()
+  await expect(page.locator('.wallet-carousel')).toBeVisible()
+  expect(await page.locator('.metric-grid').first().evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(3)
   await page.getByRole('link', { name: 'Wallets' }).last().click()
   await expect(page.getByRole('heading', { name: 'Wallets' }).first()).toBeVisible()
+  expect(await page.locator('.wallets-page-grid').evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(2)
   await page.goto('/dashboard')
+  expect(await page.locator('.dashboard-metrics').evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(3)
   await expect(page.locator('.dashboard-period-picker svg')).toHaveCount(0)
   const firstFilter = await page.locator('.dashboard-period-picker button').nth(0).boundingBox()
   const secondRowFilter = await page.locator('.dashboard-period-picker button').nth(3).boundingBox()
@@ -388,7 +425,7 @@ test('starts authentication at the app entry and remembers the last email', asyn
   await page.getByRole('button', { name: 'Continue' }).click()
   await expect(page.getByRole('heading', { name: 'Choose a six-digit PIN.' })).toBeVisible()
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Enter your PIN.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'returning@example.com' })).toBeVisible()
   await page.getByRole('tab', { name: 'Create account' }).click()
   await expect(page.getByRole('heading', { name: 'Create your money space.' })).toBeVisible()
@@ -399,6 +436,16 @@ test('requires PIN access before opening a main route', async ({ page }) => {
 
   await expect(page).toHaveURL(/\/login$/)
   await expect(page.getByRole('heading', { name: 'Create your money space.' })).toBeVisible()
+})
+
+test('keeps the active account open after a refresh', async ({ page }) => {
+  await openUnlockedApp(page)
+  await page.goto('/dashboard')
+  await page.reload()
+
+  await expect(page).toHaveURL(/\/dashboard$/)
+  await expect(page.getByRole('heading', { name: 'Dashboard' }).first()).toBeVisible()
+  await expect(page).not.toHaveURL(/\/login$/)
 })
 
 test('validates a confirmed signup PIN', async ({ page }) => {
@@ -413,7 +460,7 @@ test('validates a confirmed signup PIN', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('PINs do not match')
 })
 
-test('adjusts the profile picture size', async ({ page }) => {
+test('crops and persists the profile picture', async ({ page }) => {
   await openUnlockedApp(page)
   await page.goto('/settings')
   await page.locator('input[type="file"]').first().setInputFiles({
@@ -421,18 +468,12 @@ test('adjusts the profile picture size', async ({ page }) => {
     mimeType: 'image/png',
     buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
   })
-  const avatarSize = page.getByRole('slider', { name: 'Profile picture size' })
-  await expect(avatarSize).toBeVisible()
-  await avatarSize.fill('1.3')
-  await expect(page.getByText('130%')).toBeVisible()
-  await page.getByRole('slider', { name: 'Profile picture horizontal position' }).fill('20')
-  await page.getByRole('slider', { name: 'Profile picture vertical position' }).fill('-15')
-  await expect(page.getByText('+20%')).toBeVisible()
-  await expect(page.getByText('-15%')).toBeVisible()
+  const cropDialog = page.getByRole('dialog', { name: /Crop profile picture/ })
+  await expect(cropDialog.getByText('Drag the image to reposition it.')).toBeVisible()
+  await cropDialog.getByRole('button', { name: 'Use crop' }).click()
   await page.getByRole('button', { name: 'Save profile' }).click()
   await page.reload()
-  await expect(page.getByRole('slider', { name: 'Profile picture horizontal position' })).toHaveValue('20')
-  await expect(page.getByRole('slider', { name: 'Profile picture vertical position' })).toHaveValue('-15')
+  await expect(page.getByRole('button', { name: 'Crop profile picture' })).toBeVisible()
 })
 
 test('keeps the auth screens inside a mobile viewport', async ({ page }) => {
@@ -472,12 +513,10 @@ test('keeps the auth screens inside a mobile viewport', async ({ page }) => {
   expect(await fitsAuthPanel()).toBe(true)
 })
 
-test('can start fresh without changing account settings', async ({ page }) => {
+test('does not expose the destructive start fresh action', async ({ page }) => {
   await openUnlockedApp(page)
   await page.goto('/settings')
-  await page.getByRole('button', { name: 'Start fresh' }).click()
-  const dialog = page.getByRole('dialog')
-  await expect(dialog.getByRole('heading', { name: 'Start fresh?' })).toBeVisible()
-  await dialog.getByRole('button', { name: 'Start fresh' }).click()
-  await expect(page.getByText('0 active movements')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Start fresh' })).toHaveCount(0)
+  await expect(page.getByText('Version 0.1.1')).toBeVisible()
+  await expect(page.getByText('John Benedict M. Javier')).toBeVisible()
 })

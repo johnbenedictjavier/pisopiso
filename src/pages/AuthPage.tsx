@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, Delete, LockKeyhole, Mail } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import BrandMark from '../components/BrandMark'
 import { useFinance } from '../context/FinanceContext'
 import { useAuthLock } from '../context/AuthLockContext'
 import { buildAuthPassword } from '../lib/auth'
@@ -37,6 +36,10 @@ function describeAuthError(message: string, mode: AuthMode): string {
   if (/error sending confirmation|sending.*email|smtp/.test(normalized)) return 'The account was not created because the confirmation email could not be sent. Check Supabase email settings.'
   if (/password/.test(normalized)) return 'Supabase rejected the account credentials. Try creating the account again.'
   return mode === 'sign-in' ? `That email and PIN combination did not work. (${message})` : `Account creation failed: ${message}`
+}
+
+function AuthLoadingScreen() {
+  return <main className="auth-loading" aria-busy="true" aria-live="polite"><span className="auth-loading-spinner" aria-hidden="true" /><strong>Opening your money space</strong><span>One moment.</span></main>
 }
 
 export default function AuthPage() {
@@ -170,14 +173,15 @@ export default function AuthPage() {
   }
 
   const activePin = authMode === 'sign-up' && step === 'confirm-pin' ? confirmationPin : pin
-  const pinTitle = authMode === 'sign-up' && step === 'confirm-pin' ? 'Confirm your PIN.' : authMode === 'sign-in' ? 'Enter your PIN.' : 'Choose a six-digit PIN.'
-  const pinDescription = authMode === 'sign-up' && step === 'confirm-pin' ? 'Enter it one more time so there are no surprises.' : authMode === 'sign-in' ? 'Use the PIN linked to your account.' : 'You will use this PIN whenever you return.'
+  const pinTitle = authMode === 'sign-up' && step === 'confirm-pin' ? 'Confirm your PIN.' : authMode === 'sign-in' ? 'Welcome back.' : 'Choose a six-digit PIN.'
+  const pinDescription = authMode === 'sign-up' && step === 'confirm-pin' ? 'Repeat it one more time so there are no surprises.' : authMode === 'sign-in' ? '' : 'You will use this PIN whenever you return.'
   const pinButtonLabel = authMode === 'sign-up' && step === 'pin' ? 'Continue' : authMode === 'sign-in' ? 'Sign in' : 'Create account'
+
+  if (busy) return <AuthLoadingScreen />
 
   return (
     <main className={`auth-page auth-keypad-page auth-${authMode}-${step}`}>
       <section className="auth-art">
-        <div className="auth-art-top"><BrandMark /></div>
         <div className="auth-art-copy"><span className="eyebrow">Your calmer money space</span><h1>Every peso has a place.</h1><p>Simple enough for today. Clear enough for tomorrow.</p></div>
         <div className="auth-orbit orbit-one" /><div className="auth-orbit orbit-two" />
         <div className="auth-art-note"><span>₱</span><div><strong>Your money space.</strong><small>Built around your rhythm.</small></div></div>
@@ -205,7 +209,7 @@ export default function AuthPage() {
               <button className="auth-back-button auth-email-pill" type="button" onClick={goBackFromPin}><ArrowLeft size={15} /> <span>{authMode === 'sign-up' && step === 'confirm-pin' ? 'Back to PIN' : email}</span></button>
               <span className="section-kicker">{authMode === 'sign-up' && step === 'confirm-pin' ? 'Double-check' : authMode === 'sign-in' ? 'Your PIN' : 'Secure your account'}</span>
               <h2>{pinTitle}</h2>
-              <p className="auth-lede">{pinDescription}</p>
+               {pinDescription && <p className="auth-lede">{pinDescription}</p>}
               <form className="pin-form" onSubmit={submitPin} onKeyDown={(event) => { if (/^\d$/.test(event.key)) { event.preventDefault(); addDigit(event.key) } if (event.key === 'Backspace') { event.preventDefault(); removeDigit() } }}>
                 <input className="sr-only" type="tel" inputMode="numeric" autoComplete="one-time-code" maxLength={PIN_LENGTH} value={activePin} aria-label="PIN keyboard input" onChange={(event) => setActivePin(event.target.value)} autoFocus />
                 <div className="pin-dots" aria-label={`${activePin.length} of ${PIN_LENGTH} PIN digits entered`}>{Array.from({ length: PIN_LENGTH }, (_, index) => <span key={index} className={index < activePin.length ? 'pin-dot-filled' : ''}>{index < activePin.length ? '•' : ''}</span>)}</div>
@@ -216,12 +220,11 @@ export default function AuthPage() {
                   <button type="button" aria-label="Delete last PIN digit" onClick={removeDigit}><Delete size={19} /></button>
                 </div>
                 {error && <div className="form-alert" role="alert">{error}</div>}
-                <button className="button button-primary auth-submit" type="submit" disabled={busy || activePin.length !== PIN_LENGTH}>{busy ? 'Working...' : pinButtonLabel === 'Create account' ? <><Check size={16} /> Create account</> : pinButtonLabel === 'Sign in' ? <><LockKeyhole size={16} /> Sign in</> : <><ArrowRight size={16} /> Continue</>}</button>
-              </form>
-            </>
-          )}
-          <p className="auth-footnote">Your account details stay private and your PIN is never displayed.</p>
-        </div>
+                 <button className="button button-primary auth-submit" type="submit" disabled={activePin.length !== PIN_LENGTH}>{pinButtonLabel === 'Create account' ? <><Check size={16} /> Create account</> : pinButtonLabel === 'Sign in' ? <><LockKeyhole size={16} /> Sign in</> : <><ArrowRight size={16} /> Continue</>}</button>
+               </form>
+             </>
+           )}
+         </div>
       </section>
     </main>
   )

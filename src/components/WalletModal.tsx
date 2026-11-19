@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, Check, ImagePlus, Plus, Trash2, WalletCards } from 'lucide-react'
+import { Camera, Check, ChevronDown, ImagePlus, Plus, Trash2, WalletCards } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Modal from './Modal'
+import ImageCropper from './ImageCropper'
 import { useFinance } from '../context/FinanceContext'
 import { blobToDataUrl, compressImage, imageTransform, validateImage } from '../lib/images'
 import { parseAmountToCents } from '../lib/money'
@@ -16,7 +17,14 @@ interface WalletModalProps {
   wallet?: Wallet | null
 }
 
-const walletColors = ['#5f8068', '#3f7897', '#a76b67', '#7a6aa9', '#b28647', '#5e7791']
+const walletColors = [
+  '#5f8068', '#3f7897', '#a76b67', '#7a6aa9', '#b28647', '#5e7791',
+  '#2e8b67', '#2674a3', '#b55655', '#7d5bb7', '#315b89', '#ad6b2d',
+  '#3e8e91', '#8d4e7d', '#4d6f3f', '#c05f42', '#5467ae', '#8b5f38',
+  '#2f6d5e', '#a64e68', '#6a63a8', '#8f7a32', '#296681', '#a5558e',
+  '#4b7a68', '#be6e50',
+]
+const visibleWalletColors = walletColors.slice(0, 6)
 
 export default function WalletModal({ open, onClose, onSuccess, wallet = null }: WalletModalProps) {
   const { addWallet, updateWallet } = useFinance()
@@ -28,6 +36,8 @@ export default function WalletModal({ open, onClose, onSuccess, wallet = null }:
   const [logoPositionX, setLogoPositionX] = useState(0)
   const [logoPositionY, setLogoPositionY] = useState(0)
   const [logoBusy, setLogoBusy] = useState(false)
+  const [cropOpen, setCropOpen] = useState(false)
+  const [showMoreColors, setShowMoreColors] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
   const cameraInput = useRef<HTMLInputElement>(null)
   const form = useForm<WalletFormValues>({
@@ -46,6 +56,8 @@ export default function WalletModal({ open, onClose, onSuccess, wallet = null }:
     if (!open) return
     setSubmitError(null)
     setLogoError(null)
+    setCropOpen(false)
+    setShowMoreColors(false)
     setLogoUrl(null)
     setLogoName(null)
     setLogoPositionX(0)
@@ -82,6 +94,7 @@ export default function WalletModal({ open, onClose, onSuccess, wallet = null }:
       setLogoScale(1)
       setLogoPositionX(0)
       setLogoPositionY(0)
+      setCropOpen(true)
     } catch (error) {
       setLogoError(error instanceof Error ? error.message : 'Could not process this logo.')
     } finally {
@@ -112,19 +125,20 @@ export default function WalletModal({ open, onClose, onSuccess, wallet = null }:
   const selectedTheme = form.watch('cardTheme')
 
   return (
-    <Modal open={open} title={wallet ? 'Edit wallet' : 'Add a wallet'} description={wallet ? 'Update the details on this wallet.' : 'Set up a wallet in a few quick steps.'} onClose={onClose} size="large">
-      <form className="form-stack" onSubmit={form.handleSubmit(handleSubmit)}>
-        <div className="wallet-logo-field">
-           <div className="wallet-logo-preview" style={{ '--wallet-accent': form.watch('color') } as React.CSSProperties}>
-             {logoUrl ? <img src={logoUrl} alt="Wallet logo preview" style={{ transform: imageTransform(logoScale, logoPositionX, logoPositionY) }} /> : <WalletCards size={28} />}
-          </div>
+    <>
+      <Modal open={open} title={wallet ? 'Edit wallet' : 'Add a wallet'} description={wallet ? 'Update the details on this wallet.' : 'Set up a wallet in a few quick steps.'} onClose={() => { setCropOpen(false); onClose() }} size="large">
+        <form className="form-stack" onSubmit={form.handleSubmit(handleSubmit)}>
+         <div className="wallet-logo-field">
+            <button className="wallet-logo-preview" type="button" style={{ '--wallet-accent': form.watch('color') } as React.CSSProperties} onClick={() => logoUrl && setCropOpen(true)} aria-label={logoUrl ? 'Crop wallet logo' : 'Wallet logo preview'}>
+              {logoUrl ? <img src={logoUrl} alt="Wallet logo preview" style={{ transform: imageTransform(logoScale, logoPositionX, logoPositionY) }} /> : <WalletCards size={28} />}
+            </button>
            <div className="wallet-logo-copy"><span className="section-kicker">Custom wallet logo</span><strong>{logoUrl ? 'Custom logo added.' : 'Make it unmistakably yours.'}</strong><small>Upload an image or take one with your camera. JPG, PNG, or WebP.</small><div className="wallet-logo-actions"><button className="button button-secondary button-small" type="button" onClick={() => fileInput.current?.click()} disabled={logoBusy}><ImagePlus size={15} /> Choose image</button><button className="button button-quiet button-small" type="button" onClick={() => cameraInput.current?.click()} disabled={logoBusy}><Camera size={15} /> Use camera</button>{logoUrl && <button className="icon-button icon-button-small" type="button" aria-label="Remove wallet logo" onClick={() => { setLogoUrl(null); setLogoName(null); setLogoScale(1); setLogoPositionX(0); setLogoPositionY(0) }}><Trash2 size={15} /></button>}</div></div>
           <input ref={fileInput} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { void handleLogo(event.target.files?.[0]); event.currentTarget.value = '' }} />
           <input ref={cameraInput} className="sr-only" type="file" accept="image/*" capture="environment" onChange={(event) => { void handleLogo(event.target.files?.[0]); event.currentTarget.value = '' }} />
         </div>
         {logoBusy && <div className="upload-status">Preparing your logo…</div>}
          {logoError && <div className="form-alert">{logoError}</div>}
-          {logoUrl && <div className="image-adjustments"><label className="field logo-size-field"><span><span>Logo size</span><output>{Math.round(logoScale * 100)}%</output></span><input type="range" min="0.5" max="1.5" step="0.05" value={logoScale} aria-label="Logo size" onChange={(event) => setLogoScale(Number(event.target.value))} /><small className="field-hint">Adjust the crop size.</small></label><label className="field image-position-field"><span><span>Horizontal position</span><output>{logoPositionX > 0 ? '+' : ''}{logoPositionX}%</output></span><input type="range" min="-50" max="50" step="1" value={logoPositionX} aria-label="Logo horizontal position" onChange={(event) => setLogoPositionX(Number(event.target.value))} /></label><label className="field image-position-field"><span><span>Vertical position</span><output>{logoPositionY > 0 ? '+' : ''}{logoPositionY}%</output></span><input type="range" min="-50" max="50" step="1" value={logoPositionY} aria-label="Logo vertical position" onChange={(event) => setLogoPositionY(Number(event.target.value))} /></label><button className="button button-quiet button-small image-position-reset" type="button" onClick={() => { setLogoPositionX(0); setLogoPositionY(0) }}>Center logo</button></div>}
+         {logoUrl && <button className="button button-quiet button-small image-crop-open" type="button" onClick={() => setCropOpen(true)}>Crop logo</button>}
         <label className="field">
           <span>Wallet name</span>
           <input placeholder="e.g. BPI Everyday" autoComplete="off" {...form.register('name')} />
@@ -152,7 +166,8 @@ export default function WalletModal({ open, onClose, onSuccess, wallet = null }:
         <div className="field">
           <span>Accent color</span>
           <div className="color-options" role="radiogroup" aria-label="Wallet accent color">
-            {walletColors.map((color) => <button key={color} className={`color-option ${form.watch('color') === color ? 'color-option-active' : ''}`} style={{ backgroundColor: color }} type="button" role="radio" aria-checked={form.watch('color') === color} aria-label={`Use ${color}`} onClick={() => form.setValue('color', color)} />)}
+             {(showMoreColors ? walletColors : visibleWalletColors).map((color) => <button key={color} className={`color-option ${form.watch('color') === color ? 'color-option-active' : ''}`} style={{ background: `linear-gradient(135deg, ${color}, color-mix(in srgb, ${color} 45%, #ffffff))` }} type="button" role="radio" aria-checked={form.watch('color') === color} aria-label={`Use ${color}`} title={`Use ${color}`} onClick={() => form.setValue('color', color)} />)}
+             <button className="color-option-more" type="button" aria-expanded={showMoreColors} onClick={() => setShowMoreColors((current) => !current)}>{showMoreColors ? 'Fewer' : 'More'} <ChevronDown size={13} /></button>
           </div>
         </div>
         <label className="check-field">
@@ -164,7 +179,9 @@ export default function WalletModal({ open, onClose, onSuccess, wallet = null }:
           <button className="button button-quiet" type="button" onClick={onClose}>Cancel</button>
           <button className="button button-primary" type="submit">{wallet ? <><Check size={17} /> Save changes</> : <><Plus size={17} /> Add wallet</>}</button>
         </div>
-      </form>
-    </Modal>
+        </form>
+      </Modal>
+      <ImageCropper open={cropOpen} imageUrl={logoUrl} title="Crop wallet logo" description="Position the logo inside a clean square crop." onClose={() => setCropOpen(false)} onConfirm={(croppedUrl) => { setLogoUrl(croppedUrl); setLogoScale(1); setLogoPositionX(0); setLogoPositionY(0); setCropOpen(false) }} />
+    </>
   )
 }
