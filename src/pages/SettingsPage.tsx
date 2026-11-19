@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Camera, Check, Download, ImagePlus, Moon, Sun, Trash2, UserRound } from 'lucide-react'
+import { Camera, Check, Code2, Crop, Download, ImagePlus, Moon, Sparkles, Sun, Trash2, UserRound } from 'lucide-react'
 import ProfileAvatar from '../components/ProfileAvatar'
 import ImageCropper from '../components/ImageCropper'
 import { useFinance } from '../context/FinanceContext'
@@ -69,7 +69,10 @@ export default function SettingsPage() {
                 <div className="profile-photo-actions">
                   <button className="button button-secondary button-small" type="button" onClick={() => fileInput.current?.click()} disabled={avatarBusy}><ImagePlus size={14} /> Choose</button>
                   <button className="button button-quiet button-small" type="button" onClick={() => cameraInput.current?.click()} disabled={avatarBusy}><Camera size={14} /> Camera</button>
-                  {avatarUrl && <button className="icon-button icon-button-small" type="button" aria-label="Remove profile picture" onClick={() => { setAvatarUrl(null); setAvatarName(null); setAvatarScale(1); setAvatarPositionX(0); setAvatarPositionY(0); setCropOpen(false) }}><Trash2 size={15} /></button>}
+                  {avatarUrl && <>
+                    <button className="icon-button icon-button-small" type="button" aria-label="Crop profile photo" title="Crop profile photo" onClick={() => setCropOpen(true)}><Crop size={15} /></button>
+                    <button className="icon-button icon-button-small" type="button" aria-label="Remove profile picture" title="Remove profile picture" onClick={() => { setAvatarUrl(null); setAvatarName(null); setAvatarScale(1); setAvatarPositionX(0); setAvatarPositionY(0); setCropOpen(false) }}><Trash2 size={15} /></button>
+                  </>}
                 </div>
               </div>
               <input ref={fileInput} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { void handleAvatar(event.target.files?.[0]); event.currentTarget.value = '' }} />
@@ -77,14 +80,20 @@ export default function SettingsPage() {
             </div>
             {avatarBusy && <div className="upload-status">Preparing photo...</div>}
             {avatarError && <div className="form-alert">{avatarError}</div>}
-             {avatarUrl && <button className="button button-quiet button-small image-crop-open" type="button" onClick={() => setCropOpen(true)}>Crop photo</button>}
             <label className="field"><span>Display name</span><input value={name} onChange={(event) => setName(event.target.value)} /></label>
             <button className="button button-primary" type="button" onClick={saveProfile}><Check size={16} /> Save profile</button>
           </article>
           <article className="panel settings-card"><div className="settings-card-heading"><span className="settings-icon"><Sun size={18} /></span><div><span className="section-kicker">Appearance</span><h2>Theme</h2></div></div><div className="theme-options"><button className={`theme-option ${state.profile.theme === 'light' ? 'theme-option-active' : ''}`} type="button" onClick={() => updateTheme('light')}><span className="theme-preview theme-preview-light"><Sun size={20} /></span><strong>Light</strong><small>Clear and bright</small></button><button className={`theme-option ${state.profile.theme === 'dark' ? 'theme-option-active' : ''}`} type="button" onClick={() => updateTheme('dark')}><span className="theme-preview theme-preview-dark"><Moon size={20} /></span><strong>Dark</strong><small>Soft on the eyes</small></button></div></article>
            <article className="panel settings-card"><div className="settings-card-heading"><span className="settings-icon"><Download size={18} /></span><div><span className="section-kicker">Data</span><h2>Export</h2></div></div><div className="settings-action-row"><div><strong>Download transactions</strong><small>{transactions.length} active movements</small></div><button className="button button-secondary" type="button" onClick={() => { downloadTransactionsCsv(transactions, state.wallets); notify('CSV export ready.') }}><Download size={16} /> Export CSV</button></div></article>
         </div>
-         <aside className="settings-aside"><div className="about-card"><span className="section-kicker">PisoPiso</span><strong>Every peso has a place.</strong><p>Built for the small decisions that add up.</p><span>Version 0.1.1</span><span>John Benedict M. Javier</span><small>Web Software Developer</small></div></aside>
+         <aside className="settings-aside"><div className="about-card">
+           <div className="about-card-header"><span className="about-card-icon"><Sparkles size={18} /></span><div><span className="section-kicker">About PisoPiso</span><strong>Every peso has a place.</strong></div></div>
+           <p>Built for the small decisions that add up.</p>
+           <div className="about-card-details">
+             <div className="about-card-detail"><span>Version</span><strong>0.1.1</strong></div>
+             <div className="about-card-detail"><span><Code2 size={13} /> Created by</span><strong>John Benedict M. Javier</strong><small>Web Software Developer</small></div>
+           </div>
+         </div></aside>
       </section>
        <ImageCropper open={cropOpen} imageUrl={avatarUrl} title="Crop profile picture" description="Position your photo inside a clean circular crop." shape="circle" onClose={() => setCropOpen(false)} onConfirm={(croppedUrl) => { setAvatarUrl(croppedUrl); setAvatarScale(1); setAvatarPositionX(0); setAvatarPositionY(0); setCropOpen(false) }} />
     </div>

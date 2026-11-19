@@ -1,11 +1,10 @@
-import { Archive, ArrowUpRight, MoreHorizontal, Pencil, WalletCards } from 'lucide-react'
+import { Archive, ArrowUpRight, CreditCard, MoreHorizontal, Pencil, WalletCards } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useFinance } from '../context/FinanceContext'
 import { formatCurrency } from '../lib/money'
 import AnimatedNumber from './AnimatedNumber'
 import { walletTypeLabels } from '../types'
-import WalletLogo from './WalletLogo'
 import type { Wallet } from '../types'
 
 interface WalletCardProps {
@@ -38,7 +37,7 @@ export default function WalletCard({ wallet, featured = false, onEdit, onArchive
       <span className="wallet-card-shine" aria-hidden="true" />
       <div className="wallet-card-top">
         <div className="wallet-card-identity">
-          <WalletLogo logoUrl={wallet.logoUrl} logoScale={wallet.logoScale} logoPositionX={wallet.logoPositionX} logoPositionY={wallet.logoPositionY} name={wallet.name} color={wallet.color} size={featured ? 'large' : 'medium'} />
+          <span className="wallet-card-mark" aria-hidden="true"><WalletCards size={featured ? 19 : 17} strokeWidth={1.8} /></span>
           <div className="wallet-card-identity-copy"><span>Wallet</span><strong>{wallet.name}</strong></div>
         </div>
         {hasActions ? (
@@ -57,8 +56,7 @@ export default function WalletCard({ wallet, featured = false, onEdit, onArchive
         <small>{walletTypeLabels[wallet.type]}</small>
       </div>
       <div className="wallet-card-footer">
-        <span className="wallet-type"><WalletCards size={14} /> <span>•••• {wallet.id.slice(-4).toUpperCase()}</span></span>
-        {!wallet.allowOverdraft && <span className="safe-badge">Protected</span>}
+        <span className="wallet-type"><CreditCard size={13} /> <span>•••• {wallet.id.slice(-4).toUpperCase()}</span></span>
       </div>
     </article>
   )

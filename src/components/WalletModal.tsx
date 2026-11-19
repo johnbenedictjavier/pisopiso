@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, Check, ChevronDown, ImagePlus, Plus, Trash2, WalletCards } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import { Camera, Check, ChevronDown, ImagePlus, Palette, Paintbrush, Plus, Trash2, WalletCards } from 'lucide-react'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Modal from './Modal'
 import ImageCropper from './ImageCropper'
@@ -122,14 +122,18 @@ export default function WalletModal({ open, onClose, onSuccess, wallet = null }:
     }
   }
 
-  const selectedTheme = form.watch('cardTheme')
+  const selectedTheme = useWatch({ control: form.control, name: 'cardTheme' })
+  const selectedColor = useWatch({ control: form.control, name: 'color' })
+  const colorOptions = showMoreColors || visibleWalletColors.includes(selectedColor)
+    ? showMoreColors ? walletColors : visibleWalletColors
+    : [selectedColor, ...visibleWalletColors]
 
   return (
     <>
       <Modal open={open} title={wallet ? 'Edit wallet' : 'Add a wallet'} description={wallet ? 'Update the details on this wallet.' : 'Set up a wallet in a few quick steps.'} onClose={() => { setCropOpen(false); onClose() }} size="large">
         <form className="form-stack" onSubmit={form.handleSubmit(handleSubmit)}>
          <div className="wallet-logo-field">
-            <button className="wallet-logo-preview" type="button" style={{ '--wallet-accent': form.watch('color') } as React.CSSProperties} onClick={() => logoUrl && setCropOpen(true)} aria-label={logoUrl ? 'Crop wallet logo' : 'Wallet logo preview'}>
+            <button className="wallet-logo-preview" type="button" style={{ '--wallet-accent': selectedColor } as React.CSSProperties} onClick={() => logoUrl && setCropOpen(true)} aria-label={logoUrl ? 'Crop wallet logo' : 'Wallet logo preview'}>
               {logoUrl ? <img src={logoUrl} alt="Wallet logo preview" style={{ transform: imageTransform(logoScale, logoPositionX, logoPositionY) }} /> : <WalletCards size={28} />}
             </button>
            <div className="wallet-logo-copy"><span className="section-kicker">Custom wallet logo</span><strong>{logoUrl ? 'Custom logo added.' : 'Make it unmistakably yours.'}</strong><small>Upload an image or take one with your camera. JPG, PNG, or WebP.</small><div className="wallet-logo-actions"><button className="button button-secondary button-small" type="button" onClick={() => fileInput.current?.click()} disabled={logoBusy}><ImagePlus size={15} /> Choose image</button><button className="button button-quiet button-small" type="button" onClick={() => cameraInput.current?.click()} disabled={logoBusy}><Camera size={15} /> Use camera</button>{logoUrl && <button className="icon-button icon-button-small" type="button" aria-label="Remove wallet logo" onClick={() => { setLogoUrl(null); setLogoName(null); setLogoScale(1); setLogoPositionX(0); setLogoPositionY(0) }}><Trash2 size={15} /></button>}</div></div>
@@ -158,15 +162,15 @@ export default function WalletModal({ open, onClose, onSuccess, wallet = null }:
           <small className="field-hint">You can start with zero and add movements later.</small>
         </label>
         <div className="field">
-          <span>Card style</span>
+          <span><span className="field-label-with-icon"><Palette size={14} /> Card style</span></span>
           <div className="card-theme-options" role="radiogroup" aria-label="Wallet card style">
-            {walletCardThemes.map((theme) => <button key={theme.value} className={`card-theme-option card-theme-${theme.value} ${selectedTheme === theme.value ? 'card-theme-option-active' : ''}`} type="button" role="radio" aria-checked={selectedTheme === theme.value} onClick={() => form.setValue('cardTheme', theme.value)}><span />{theme.label}</button>)}
+            {walletCardThemes.map((theme) => <button key={theme.value} className={`card-theme-option card-theme-${theme.value} ${selectedTheme === theme.value ? 'card-theme-option-active' : ''}`} style={{ '--card-theme-color': theme.color } as React.CSSProperties} type="button" role="radio" aria-checked={selectedTheme === theme.value} onClick={() => form.setValue('cardTheme', theme.value)}><span />{theme.label}</button>)}
           </div>
         </div>
         <div className="field">
-          <span>Accent color</span>
+          <span><span className="field-label-with-icon"><Paintbrush size={14} /> Accent color</span></span>
           <div className="color-options" role="radiogroup" aria-label="Wallet accent color">
-             {(showMoreColors ? walletColors : visibleWalletColors).map((color) => <button key={color} className={`color-option ${form.watch('color') === color ? 'color-option-active' : ''}`} style={{ background: `linear-gradient(135deg, ${color}, color-mix(in srgb, ${color} 45%, #ffffff))` }} type="button" role="radio" aria-checked={form.watch('color') === color} aria-label={`Use ${color}`} title={`Use ${color}`} onClick={() => form.setValue('color', color)} />)}
+             {colorOptions.map((color) => <button key={color} className={`color-option ${selectedColor === color ? 'color-option-active' : ''}`} style={{ background: `linear-gradient(135deg, ${color}, color-mix(in srgb, ${color} 45%, #ffffff))` }} type="button" role="radio" aria-checked={selectedColor === color} aria-label={`Use ${color}`} title={`Use ${color}`} onClick={() => form.setValue('color', color)} />)}
              <button className="color-option-more" type="button" aria-expanded={showMoreColors} onClick={() => setShowMoreColors((current) => !current)}>{showMoreColors ? 'Fewer' : 'More'} <ChevronDown size={13} /></button>
           </div>
         </div>
