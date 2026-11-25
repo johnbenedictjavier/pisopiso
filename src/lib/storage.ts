@@ -1,6 +1,6 @@
 import { categoryCatalog } from '../data/categories'
 import { createEmptyState } from '../data/defaults'
-import type { AppState, Profile, Transaction, Wallet } from '../types'
+import type { AppState, JarTransaction, Profile, Transaction, Wallet } from '../types'
 
 const STORAGE_KEY_PREFIX = 'pisopiso:local-state:v3:'
 const LEGACY_STORAGE_KEY = 'pisopiso:local-state:v2'
@@ -53,6 +53,12 @@ function migrateAppState(value: Partial<AppState>, userId: string, email: string
   const transactions = (value.transactions ?? []).filter(
     (transaction) => transaction.userId !== DEMO_USER_ID && walletIds.has(transaction.walletId),
   )
+  const transactionIds = new Set(transactions.map((transaction) => transaction.id))
+  const jarTransactions = (value.jarTransactions ?? []).filter(
+    (transaction) => transaction.userId !== DEMO_USER_ID
+      && transactionIds.has(transaction.sourceTransactionId)
+      && transaction.amountCents > 0,
+  )
 
   return {
     ...emptyState,
@@ -83,6 +89,11 @@ function migrateAppState(value: Partial<AppState>, userId: string, email: string
       ...transaction,
       userId,
       receiptUrl: transaction.receiptUrl ?? null,
+    })),
+    jarTransactions: jarTransactions.map((transaction: JarTransaction) => ({
+      ...transaction,
+      userId,
+      deletedAt: transaction.deletedAt ?? null,
     })),
   }
 }

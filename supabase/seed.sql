@@ -13,6 +13,8 @@ values
   ('Other expense', 'expense', '#7f8a83', 'more-horizontal'),
   ('Salary', 'income', '#4f8a59', 'briefcase-business'),
   ('Freelance', 'income', '#3c8d8a', 'laptop'),
+  ('Interest', 'income', '#b98b3f', 'trending-up'),
+  ('Scholar', 'income', '#687cb0', 'book'),
   ('Business', 'income', '#4b77a2', 'store'),
   ('Investment income', 'income', '#b98b3f', 'trending-up'),
   ('Gift', 'income', '#b46d97', 'gift'),

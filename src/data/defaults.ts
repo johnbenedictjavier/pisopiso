@@ -22,5 +22,6 @@ export function createEmptyState(userId = '', email = ''): AppState {
     wallets: [],
     categories: categoryCatalog,
     transactions: [],
+    jarTransactions: [],
   }
 }

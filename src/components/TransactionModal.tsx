@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Camera, ImagePlus, Paperclip, Send, UploadCloud } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Modal from './Modal'
 import { useFinance } from '../context/FinanceContext'
@@ -18,6 +18,22 @@ import {
 
 type MovementTab = 'expense' | 'income' | 'transfer'
 
+const amountPresets = [20, 50, 100, 150, 200, 300]
+const expenseQuickCategories = [
+  { value: 'food', label: 'Food' },
+  { value: 'transport', label: 'Transport' },
+  { value: 'shopping', label: 'Shopping' },
+  { value: 'bills', label: 'Bills' },
+  { value: 'education', label: 'Education' },
+]
+const incomeQuickCategories = [
+  { value: 'allowance', label: 'Allowance' },
+  { value: 'interest', label: 'Interest' },
+  { value: 'gift', label: 'Gift' },
+  { value: 'scholar', label: 'Scholar' },
+  { value: 'freelance', label: 'Freelance' },
+]
+
 interface TransactionModalProps {
   open: boolean
   onClose: () => void
@@ -30,12 +46,94 @@ function FieldError({ message }: { message?: string }) {
   return message ? <span className="field-error">{message}</span> : null
 }
 
+function AmountPresets({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return (
+    <div className="amount-presets" aria-label="Common values">
+      {amountPresets.map((amount) => {
+        const selected = parseAmountToCents(value) === amount * 100
+        return (
+          <button
+            className={`amount-preset ${selected ? 'amount-preset-active' : ''}`}
+            key={amount}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => onChange(String(amount))}
+          >
+            ₱{amount}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function CapsulePicker({
+  label,
+  value,
+  options,
+  moreOptions,
+  moreOpen,
+  onMoreToggle,
+  onChange,
+}: {
+  label: string
+  value: string
+  options: Array<{ value: string; label: string }>
+  moreOptions: Array<{ value: string; label: string }>
+  moreOpen: boolean
+  onMoreToggle: () => void
+  onChange: (value: string) => void
+}) {
+  const selectedMore = !options.some((option) => option.value === value)
+  const showMoreSelect = moreOpen || selectedMore
+  const moreSelectValue = selectedMore ? value : moreOptions[0]?.value ?? ''
+
+  return (
+    <div className="field capsule-picker">
+      <span>{label}</span>
+      <div className="capsule-options" role="radiogroup" aria-label={label}>
+        {options.map((option) => (
+          <button
+            className={`capsule-option ${value === option.value ? 'capsule-option-active' : ''}`}
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={value === option.value}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+        <button
+          className={`capsule-option capsule-option-more ${showMoreSelect ? 'capsule-option-active' : ''}`}
+          type="button"
+          aria-expanded={showMoreSelect}
+          onClick={onMoreToggle}
+        >
+          More
+        </button>
+      </div>
+      {showMoreSelect && (
+        <select
+          className="capsule-more-select"
+          aria-label={`${label} more options`}
+          value={moreSelectValue}
+          onChange={(event) => onChange(event.target.value)}
+        >
+          {moreOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      )}
+    </div>
+  )
+}
+
 export default function TransactionModal({ open, onClose, onSuccess, transaction = null, walletId }: TransactionModalProps) {
-  const { state, activeWallets, addTransaction, addTransfer, updateTransaction, updateTransfer } = useFinance()
+  const { state, activeWallets, jarTransactions, addTransaction, addTransfer, updateTransaction, updateTransfer } = useFinance()
   const editingTransaction = transaction
   const editingMovement = editingTransaction && editingTransaction.type !== 'transfer' ? editingTransaction : null
   const editingTransfer = editingTransaction?.type === 'transfer' ? editingTransaction : null
   const [tab, setTab] = useState<MovementTab>('expense')
+  const [moreCategoryOpen, setMoreCategoryOpen] = useState(false)
   const [receipt, setReceipt] = useState<File | null>(null)
   const [receiptError, setReceiptError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -62,8 +160,21 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
   const defaultTransferFromWalletId = walletId && !editingTransfer ? defaultWalletId : transferFromWalletId
   const categoryIdFor = (type: 'expense' | 'income', currentId: string | null | undefined) => {
     const current = state.categories.find((category) => category.id === currentId && (category.type === type || category.type === 'both'))
-    return current?.id ?? state.categories.find((category) => category.type === type || category.type === 'both')?.id ?? ''
+    const preferredId = type === 'expense' ? 'food' : 'allowance'
+    return current?.id
+      ?? state.categories.find((category) => category.id === preferredId && (category.type === type || category.type === 'both'))?.id
+      ?? state.categories.find((category) => category.type === type || category.type === 'both')?.id
+      ?? ''
   }
+  const editingJarTransaction = editingMovement
+    ? jarTransactions.find((item) => item.sourceTransactionId === editingMovement.id)
+    : undefined
+  const transactionQuickCategories = tab === 'income' ? incomeQuickCategories : expenseQuickCategories
+  const categoryRecords = state.categories.filter((category) => category.type === tab || category.type === 'both')
+  const categoryOptions = transactionQuickCategories.filter((option) => categoryRecords.some((category) => category.id === option.value))
+  const moreCategoryOptions = categoryRecords
+    .filter((category) => !categoryOptions.some((option) => option.value === category.id))
+    .map((category) => ({ value: category.id, label: category.name }))
 
   const transactionForm = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionFormSchema),
@@ -71,6 +182,7 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
       type: 'expense',
       walletId: editingMovement?.walletId ?? defaultWalletId,
       amount: editingMovement ? (editingMovement.amountCents / 100).toFixed(2) : '',
+      coinsBack: editingJarTransaction ? (editingJarTransaction.amountCents / 100).toFixed(2) : '',
       categoryId: categoryIdFor(editingMovement?.type === 'income' ? 'income' : 'expense', editingMovement?.categoryId),
       merchant: editingMovement?.merchant ?? '',
       note: editingMovement?.note ?? '',
@@ -87,6 +199,9 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
       occurredAt: editingTransfer ? toInputDate(new Date(editingTransfer.occurredAt)) : toInputDate(),
     },
   })
+  const transactionAmount = useWatch({ control: transactionForm.control, name: 'amount' })
+  const transactionCategoryId = useWatch({ control: transactionForm.control, name: 'categoryId' })
+  const transferAmount = useWatch({ control: transferForm.control, name: 'amount' })
 
   useEffect(() => {
     if (!open) return
@@ -94,10 +209,16 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
     setReceipt(null)
     setReceiptError(null)
     setTab(editingTransaction?.type ?? 'expense')
+    setMoreCategoryOpen(Boolean(
+      editingMovement?.categoryId
+      && !(editingMovement.type === 'income' ? incomeQuickCategories : expenseQuickCategories)
+        .some((option) => option.value === editingMovement.categoryId),
+    ))
     transactionForm.reset({
       type: editingTransaction?.type === 'income' ? 'income' : 'expense',
       walletId: editingMovement?.walletId ?? defaultWalletId,
       amount: editingMovement ? (editingMovement.amountCents / 100).toFixed(2) : '',
+      coinsBack: editingJarTransaction ? (editingJarTransaction.amountCents / 100).toFixed(2) : '',
       categoryId: categoryIdFor(editingMovement?.type === 'income' ? 'income' : 'expense', editingMovement?.categoryId),
       merchant: editingMovement?.merchant ?? '',
       note: editingMovement?.note ?? '',
@@ -117,7 +238,10 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
     setSubmitError(null)
     if (nextTab !== 'transfer') {
       transactionForm.setValue('type', nextTab)
-      transactionForm.setValue('categoryId', categoryIdFor(nextTab, transactionForm.getValues('categoryId')))
+      const nextCategoryId = categoryIdFor(nextTab, transactionForm.getValues('categoryId'))
+      transactionForm.setValue('categoryId', nextCategoryId)
+      setMoreCategoryOpen(!(nextTab === 'income' ? incomeQuickCategories : expenseQuickCategories)
+        .some((option) => option.value === nextCategoryId))
     }
   }
 
@@ -143,6 +267,11 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
       setSubmitError('Enter an amount greater than zero.')
       return
     }
+    const coinsBackCents = values.coinsBack.trim() ? parseAmountToCents(values.coinsBack) : 0
+    if (coinsBackCents === null) {
+      setSubmitError('Enter a valid coins-back amount.')
+      return
+    }
     try {
       const receiptUrl = receipt ? await blobToDataUrl(await compressReceipt(receipt)) : editingTransaction?.receiptUrl ?? null
       const input = {
@@ -153,6 +282,7 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
         merchant: values.merchant,
         note: values.note,
         occurredAt: values.occurredAt,
+        coinsBackCents,
         receiptName: receipt?.name ?? editingTransaction?.receiptName ?? null,
         receiptUrl,
       }
@@ -196,7 +326,11 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
     }
   }
 
-  const visibleCategories = state.categories.filter((category) => category.type === tab || category.type === 'both')
+  function selectCategory(value: string): void {
+    transactionForm.setValue('categoryId', value, { shouldDirty: true, shouldValidate: true })
+    setMoreCategoryOpen(!categoryOptions.some((option) => option.value === value))
+  }
+
   const movementTabs: MovementTab[] = editingTransfer ? ['transfer'] : editingTransaction ? ['expense', 'income'] : ['expense', 'income', 'transfer']
 
   return (
@@ -227,12 +361,13 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
               <FieldError message={transferForm.formState.errors.toWalletId?.message} />
             </label>
           </div>
-          <div className="form-grid form-grid-two">
-            <label className="field">
-              <span>Amount</span>
-              <div className="input-prefix"><span>₱</span><input inputMode="decimal" placeholder="0.00" {...transferForm.register('amount')} /></div>
-              <FieldError message={transferForm.formState.errors.amount?.message} />
-            </label>
+           <div className="form-grid form-grid-two">
+            <div className="field">
+                <span>Amount</span>
+                <div className="input-prefix"><span>₱</span><input aria-label="Amount" inputMode="decimal" placeholder="0.00" {...transferForm.register('amount')} /></div>
+                <AmountPresets value={transferAmount} onChange={(value) => transferForm.setValue('amount', value, { shouldDirty: true, shouldValidate: true })} />
+                <FieldError message={transferForm.formState.errors.amount?.message} />
+              </div>
             <label className="field">
               <span>Date</span>
               <input type="date" {...transferForm.register('occurredAt')} />
@@ -260,33 +395,45 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
       ) : (
         <form className="form-stack" onSubmit={transactionForm.handleSubmit(submitTransaction)}>
           <div className="form-grid form-grid-two">
-            <label className="field">
-              <span>{tab === 'expense' ? 'Paid from' : 'Added to'}</span>
-              <select {...transactionForm.register('walletId')}>
-                {formWallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}
-              </select>
-              <FieldError message={transactionForm.formState.errors.walletId?.message} />
-            </label>
-            <label className="field">
-              <span>Amount</span>
-              <div className="input-prefix"><span>₱</span><input inputMode="decimal" placeholder="0.00" {...transactionForm.register('amount')} /></div>
-              <FieldError message={transactionForm.formState.errors.amount?.message} />
-            </label>
-          </div>
-          <div className="form-grid form-grid-two">
-            <label className="field">
-              <span>{tab === 'expense' ? 'Category' : 'Income type'}</span>
-              <select {...transactionForm.register('categoryId')}>
-                {visibleCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-              </select>
-              <FieldError message={transactionForm.formState.errors.categoryId?.message} />
-            </label>
-            <label className="field">
-              <span>Date</span>
-              <input type="date" {...transactionForm.register('occurredAt')} />
-              <FieldError message={transactionForm.formState.errors.occurredAt?.message} />
-            </label>
-          </div>
+             <label className="field">
+               <span>{tab === 'expense' ? 'Paid from' : 'Added to'}</span>
+               <select {...transactionForm.register('walletId')}>
+                 {formWallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}
+               </select>
+               <FieldError message={transactionForm.formState.errors.walletId?.message} />
+             </label>
+             <div className="movement-amount-field">
+               <div className="movement-amount-row">
+                 <label className="movement-amount-cell">
+                   <span>Amount</span>
+                   <div className="input-prefix"><span>₱</span><input aria-label="Amount" inputMode="decimal" placeholder="0.00" {...transactionForm.register('amount')} /></div>
+                 </label>
+                 <label className="movement-amount-cell">
+                   <span>Coins back <small>Optional</small></span>
+                   <div className="input-prefix"><span>₱</span><input aria-label="Coins back" inputMode="decimal" placeholder="0.00" {...transactionForm.register('coinsBack')} /></div>
+                 </label>
+               </div>
+               <AmountPresets value={transactionAmount} onChange={(value) => transactionForm.setValue('amount', value, { shouldDirty: true, shouldValidate: true })} />
+               <FieldError message={transactionForm.formState.errors.amount?.message} />
+               <FieldError message={transactionForm.formState.errors.coinsBack?.message} />
+             </div>
+           </div>
+           <div className="form-grid form-grid-two">
+             <CapsulePicker
+               label={tab === 'expense' ? 'Category' : 'Income type'}
+               value={transactionCategoryId}
+               options={categoryOptions}
+               moreOptions={moreCategoryOptions}
+               moreOpen={moreCategoryOpen}
+               onMoreToggle={() => setMoreCategoryOpen((current) => !current)}
+               onChange={selectCategory}
+             />
+              <label className="field">
+                <span>Date</span>
+                <input aria-label="Date" type="date" {...transactionForm.register('occurredAt')} />
+                <FieldError message={transactionForm.formState.errors.occurredAt?.message} />
+              </label>
+           </div>
           <label className="field">
             <span>{tab === 'expense' ? 'Merchant' : 'Source'}</span>
             <input placeholder={tab === 'expense' ? 'e.g. Coffee shop' : 'e.g. Salary'} autoComplete="organization" {...transactionForm.register('merchant')} />

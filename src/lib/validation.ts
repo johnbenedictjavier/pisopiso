@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 const amount = z.string().trim().regex(/^\d+(?:\.\d{0,2})?$/, 'Enter an amount with up to 2 decimals.')
+const optionalAmount = z.string().trim().refine((value) => value === '' || /^\d+(?:\.\d{0,2})?$/.test(value), 'Enter an amount with up to 2 decimals.')
 
 export const transactionFormSchema = z.object({
   type: z.enum(['expense', 'income']),
@@ -10,6 +11,7 @@ export const transactionFormSchema = z.object({
   merchant: z.string().trim().min(1, 'Add a merchant or source.').max(80, 'Keep this under 80 characters.'),
   note: z.string().trim().max(240, 'Keep your note under 240 characters.'),
   occurredAt: z.string().min(1, 'Choose a date.'),
+  coinsBack: optionalAmount,
 })
 
 export const transferFormSchema = z
@@ -27,11 +29,11 @@ export const transferFormSchema = z
 
 export const walletFormSchema = z.object({
   name: z.string().trim().min(1, 'Give this wallet a name.').max(60, 'Keep this under 60 characters.'),
-  type: z.enum(['bank', 'digital_bank', 'e_wallet', 'cash', 'savings', 'emergency_fund', 'investment', 'custom']),
+  type: z.enum(['bank', 'digital_bank', 'e_wallet', 'cash', 'savings', 'credit', 'emergency_fund', 'investment', 'custom']),
   openingBalance: amount,
   allowOverdraft: z.boolean(),
   color: z.string().regex(/^#[0-9a-f]{6}$/i),
-  cardTheme: z.enum(['emerald', 'ocean', 'sunset', 'violet', 'midnight', 'sand']),
+  cardTheme: z.enum(['emerald', 'ocean', 'sunset', 'violet', 'midnight', 'sand', 'rose', 'lavender', 'sky', 'citrus', 'berry', 'terracotta']),
 })
 
 export type TransactionFormValues = z.infer<typeof transactionFormSchema>

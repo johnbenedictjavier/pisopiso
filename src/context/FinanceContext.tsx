@@ -11,6 +11,7 @@ import type {
   AddTransferInput,
   AddWalletInput,
   AppState,
+  JarTransaction,
   Transaction,
   TransactionType,
   UpdateTransactionInput,
@@ -23,7 +24,10 @@ interface FinanceContextValue {
   state: AppState
   activeWallets: Wallet[]
   transactions: Transaction[]
+  jarTransactions: JarTransaction[]
   totalBalanceCents: number
+  availableBalanceCents: number
+  jarBalanceCents: number
   monthIncomeCents: number
   monthExpensesCents: number
   monthNetCents: number
@@ -57,6 +61,69 @@ function createTransaction(
   }
 }
 
+function createJarTransaction(
+  input: Omit<JarTransaction, 'id' | 'createdAt' | 'deletedAt'>,
+): JarTransaction {
+  return {
+    ...input,
+    id: createId('jar'),
+    createdAt: new Date().toISOString(),
+    deletedAt: null,
+  }
+}
+
+function validateCoinsBackAmount(value: number | undefined): number {
+  if (value === undefined) return 0
+  if (!Number.isSafeInteger(value) || value < 0) throw new Error('Coins back must be a valid non-negative amount.')
+  return value
+}
+
+function syncJarContribution(state: AppState, sourceTransaction: Transaction, amountCents: number): AppState {
+  const activeContribution = state.jarTransactions.find(
+    (transaction) => transaction.sourceTransactionId === sourceTransaction.id && !transaction.deletedAt,
+  )
+
+  if (amountCents <= 0) {
+    return {
+      ...state,
+      jarTransactions: state.jarTransactions.map((transaction) =>
+        transaction.sourceTransactionId === sourceTransaction.id && !transaction.deletedAt
+          ? { ...transaction, deletedAt: new Date().toISOString() }
+          : transaction,
+      ),
+    }
+  }
+
+  if (activeContribution) {
+    return {
+      ...state,
+      jarTransactions: state.jarTransactions.map((transaction) =>
+        transaction.id === activeContribution.id
+          ? {
+              ...transaction,
+              sourceType: sourceTransaction.type as Exclude<TransactionType, 'transfer'>,
+              amountCents,
+              occurredAt: sourceTransaction.occurredAt,
+            }
+          : transaction,
+      ),
+    }
+  }
+
+  const jarTransaction = createJarTransaction({
+    userId: sourceTransaction.userId,
+    sourceTransactionId: sourceTransaction.id,
+    sourceType: sourceTransaction.type as Exclude<TransactionType, 'transfer'>,
+    amountCents,
+    occurredAt: sourceTransaction.occurredAt,
+  })
+
+  return {
+    ...state,
+    jarTransactions: [jarTransaction, ...state.jarTransactions],
+  }
+}
+
 export function FinanceProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(() => {
     const testUser = getTestSessionUser()
@@ -74,6 +141,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     () => state.transactions.filter((transaction) => !transaction.deletedAt),
     [state.transactions],
   )
+  const jarTransactions = useMemo(
+    () => state.jarTransactions.filter((transaction) => !transaction.deletedAt),
+    [state.jarTransactions],
+  )
   const getWalletBalance = (walletId: string) => {
     const wallet = state.wallets.find((item) => item.id === walletId)
     return wallet ? calculateWalletBalance(wallet, state.transactions) : 0
@@ -89,14 +160,19 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       .reduce((sum, transaction) => sum + transaction.amountCents, 0)
     return {
       totalBalanceCents: activeWallets.reduce((sum, wallet) => sum + calculateWalletBalance(wallet, state.transactions), 0),
+      availableBalanceCents: activeWallets
+        .filter((wallet) => wallet.type !== 'credit')
+        .reduce((sum, wallet) => sum + calculateWalletBalance(wallet, state.transactions), 0),
+      jarBalanceCents: jarTransactions.reduce((sum, transaction) => sum + transaction.amountCents, 0),
       monthIncomeCents,
       monthExpensesCents,
       monthNetCents: monthIncomeCents - monthExpensesCents,
     }
-  }, [activeWallets, state, transactions])
+  }, [activeWallets, jarTransactions, state, transactions])
 
   function addTransaction(input: AddTransactionInput): void {
     if (input.amountCents <= 0) throw new Error('Amount must be greater than zero.')
+    const coinsBackCents = validateCoinsBackAmount(input.coinsBackCents)
     const wallet = state.wallets.find((item) => item.id === input.walletId)
     if (!wallet || wallet.isArchived) throw new Error('Choose an active wallet.')
     if (input.type === 'expense' && !wallet.allowOverdraft) {
@@ -118,7 +194,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       receiptName: input.receiptName ?? null,
       receiptUrl: input.receiptUrl ?? null,
     })
-    setState((current) => ({ ...current, transactions: [transaction, ...current.transactions] }))
+    setState((current) => syncJarContribution({
+      ...current,
+      transactions: [transaction, ...current.transactions],
+    }, transaction, coinsBackCents))
   }
 
   function addTransfer(input: AddTransferInput): void {
@@ -164,6 +243,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   function updateTransaction(transactionId: string, input: UpdateTransactionInput): void {
     if (input.amountCents <= 0) throw new Error('Amount must be greater than zero.')
+    const coinsBackCents = validateCoinsBackAmount(input.coinsBackCents)
     const existing = state.transactions.find((transaction) => transaction.id === transactionId && !transaction.deletedAt)
     if (!existing || existing.type === 'transfer') throw new Error('Transaction not found.')
     const wallet = state.wallets.find((item) => item.id === input.walletId)
@@ -188,10 +268,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       receiptName: input.receiptName ?? null,
       receiptUrl: input.receiptUrl ?? null,
     }
-    setState((current) => ({
+    setState((current) => syncJarContribution({
       ...current,
       transactions: current.transactions.map((transaction) => transaction.id === transactionId ? updated : transaction),
-    }))
+    }, updated, coinsBackCents))
   }
 
   function updateTransfer(transferGroupId: string, input: UpdateTransferInput): void {
@@ -240,7 +320,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       name: input.name.trim(),
       type: input.type,
       openingBalanceCents: input.openingBalanceCents,
-      allowOverdraft: input.allowOverdraft,
+      allowOverdraft: input.type === 'credit' || input.allowOverdraft,
       color: input.color,
       cardTheme: input.cardTheme,
       logoUrl: input.logoUrl,
@@ -264,7 +344,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         name: input.name.trim(),
         type: input.type,
         openingBalanceCents: input.openingBalanceCents,
-        allowOverdraft: input.allowOverdraft,
+        allowOverdraft: input.type === 'credit' || input.allowOverdraft,
         color: input.color,
         cardTheme: input.cardTheme,
         logoUrl: input.logoUrl,
@@ -286,16 +366,24 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   function deleteTransaction(transactionId: string): void {
     const transaction = state.transactions.find((item) => item.id === transactionId)
     if (!transaction) return
-    setState((current) => ({
-      ...current,
-      transactions: current.transactions.map((item) =>
-        item.transferGroupId && item.transferGroupId === transaction.transferGroupId
-          ? { ...item, deletedAt: new Date().toISOString() }
-          : item.id === transactionId
-            ? { ...item, deletedAt: new Date().toISOString() }
-            : item,
-      ),
-    }))
+    setState((current) => {
+      const deletedAt = new Date().toISOString()
+      const deletedTransactionIds = new Set(
+        current.transactions
+          .filter((item) => transaction.transferGroupId && item.transferGroupId === transaction.transferGroupId)
+          .map((item) => item.id),
+      )
+      deletedTransactionIds.add(transactionId)
+      return {
+        ...current,
+        transactions: current.transactions.map((item) =>
+          deletedTransactionIds.has(item.id) ? { ...item, deletedAt } : item,
+        ),
+        jarTransactions: current.jarTransactions.map((item) =>
+          deletedTransactionIds.has(item.sourceTransactionId) ? { ...item, deletedAt } : item,
+        ),
+      }
+    })
   }
 
   function updateTheme(theme: AppState['profile']['theme']): void {
@@ -338,6 +426,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     state,
     activeWallets,
     transactions,
+    jarTransactions,
     ...totals,
     getWalletBalance,
     getWallet: (walletId) => state.wallets.find((wallet) => wallet.id === walletId),

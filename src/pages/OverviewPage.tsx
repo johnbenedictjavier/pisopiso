@@ -14,6 +14,7 @@ import TransactionModal from '../components/TransactionModal'
 import ConfirmModal from '../components/ConfirmModal'
 import WalletCard from '../components/WalletCard'
 import WalletCarousel from '../components/WalletCarousel'
+import CoinJar from '../components/CoinJar'
 import { useShell } from '../layout/AppShell'
 import type { Transaction } from '../types'
 
@@ -23,7 +24,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
 }
 
 export default function OverviewPage() {
-  const { activeWallets, transactions, totalBalanceCents, monthIncomeCents, monthExpensesCents, monthNetCents, deleteTransaction: removeTransaction } = useFinance()
+  const { activeWallets, transactions, totalBalanceCents, availableBalanceCents, monthIncomeCents, monthExpensesCents, monthNetCents, deleteTransaction: removeTransaction } = useFinance()
   const { notify } = useShell()
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
   const [editTarget, setEditTarget] = useState<Transaction | null>(null)
@@ -49,11 +50,20 @@ export default function OverviewPage() {
        <section className="overview-intro"><div><span className="section-kicker">Today</span><h2 className="page-section-title">Money at a glance</h2></div></section>
 
       <section className="overview-grid">
-        <article className="balance-card">
-          <div className="balance-card-header"><span>Total balance</span><span className="balance-period"><CalendarDays size={14} /> All wallets</span></div>
-          <strong className="balance-value"><AnimatedNumber value={totalBalanceCents} format={(amount) => formatCurrency(Math.round(amount))} /></strong>
-           <div className="balance-card-footer"><span className="balance-change"><TrendingUp size={15} /> <AnimatedNumber value={monthNetCents} format={(amount) => formatSignedCurrency(Math.round(amount))} /> this month</span><span className="balance-date">Updated just now</span></div>
-        </article>
+           <article className="balance-card">
+             <div className="balance-card-header"><span>Total balance</span><span className="balance-period"><CalendarDays size={14} /> All wallets</span></div>
+           <div className="balance-card-main">
+             <div className="balance-card-numbers">
+               <strong className="balance-value"><AnimatedNumber value={totalBalanceCents} format={(amount) => formatCurrency(Math.round(amount))} /></strong>
+               <div className="balance-secondary">
+                 <span>Available balance <small>Excludes credit</small></span>
+                 <strong><AnimatedNumber value={availableBalanceCents} format={(amount) => formatCurrency(Math.round(amount))} /></strong>
+               </div>
+             </div>
+             <CoinJar />
+           </div>
+            <div className="balance-card-footer"><span className="balance-change"><TrendingUp size={15} /> <AnimatedNumber value={monthNetCents} format={(amount) => formatSignedCurrency(Math.round(amount))} /> this month</span><span className="balance-date">Updated just now</span></div>
+         </article>
          <article className="chart-card">
           <div className="card-heading-row"><div><span className="section-kicker">Cash flow</span><h2>Last 7 days</h2></div><span className="chart-legend"><i className="dot dot-income" /> Income <i className="dot dot-expenses" /> Expenses</span></div>
            <div className="overview-chart"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chartData} margin={{ top: 10, right: 4, left: -25, bottom: 0 }}><defs><linearGradient id="incomeFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#5f8068" stopOpacity={0.22} /><stop offset="100%" stopColor="#5f8068" stopOpacity={0} /></linearGradient><linearGradient id="expenseFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#d69570" stopOpacity={0.16} /><stop offset="100%" stopColor="#d69570" stopOpacity={0} /></linearGradient></defs><XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--muted)', fontSize: 11 }} /><YAxis axisLine={false} tickLine={false} tick={false} /><Tooltip cursor={false} content={<ChartTooltip />} /><Area type="monotone" dataKey="income" stroke="#5f8068" strokeWidth={2.5} fill="url(#incomeFill)" activeDot={false} /><Area type="monotone" dataKey="expenses" stroke="#d69570" strokeWidth={2.5} fill="url(#expenseFill)" activeDot={false} /></AreaChart></ResponsiveContainer></div>

@@ -6,6 +6,7 @@ export type WalletType =
   | 'e_wallet'
   | 'cash'
   | 'savings'
+  | 'credit'
   | 'emergency_fund'
   | 'investment'
   | 'custom'
@@ -14,7 +15,19 @@ export type TransactionType = 'expense' | 'income' | 'transfer'
 
 export type TransferDirection = 'out' | 'in'
 
-export type WalletCardTheme = 'emerald' | 'ocean' | 'sunset' | 'violet' | 'midnight' | 'sand'
+export type WalletCardTheme =
+  | 'emerald'
+  | 'ocean'
+  | 'sunset'
+  | 'violet'
+  | 'midnight'
+  | 'sand'
+  | 'rose'
+  | 'lavender'
+  | 'sky'
+  | 'citrus'
+  | 'berry'
+  | 'terracotta'
 
 export interface Profile {
   id: string
@@ -74,11 +87,23 @@ export interface Transaction {
   deletedAt: string | null
 }
 
+export interface JarTransaction {
+  id: string
+  userId: string
+  sourceTransactionId: string
+  sourceType: Exclude<TransactionType, 'transfer'>
+  amountCents: number
+  occurredAt: string
+  createdAt: string
+  deletedAt: string | null
+}
+
 export interface AppState {
   profile: Profile
   wallets: Wallet[]
   categories: Category[]
   transactions: Transaction[]
+  jarTransactions: JarTransaction[]
 }
 
 export interface TransactionMovementInput {
@@ -89,6 +114,7 @@ export interface TransactionMovementInput {
   merchant: string
   note: string
   occurredAt: string
+  coinsBackCents?: number
   receiptName?: string | null
   receiptUrl?: string | null
 }
@@ -130,6 +156,7 @@ export const walletTypeLabels: Record<WalletType, string> = {
   e_wallet: 'E-wallet',
   cash: 'Cash',
   savings: 'Personal savings',
+  credit: 'Credit / Utang',
   emergency_fund: 'Emergency fund',
   investment: 'Investment account',
   custom: 'Custom account',
@@ -142,4 +169,10 @@ export const walletCardThemes: Array<{ value: WalletCardTheme; label: string; co
   { value: 'violet', label: 'Violet', color: '#7563a6' },
   { value: 'midnight', label: 'Midnight', color: '#243b4d' },
   { value: 'sand', label: 'Sand', color: '#ac7b43' },
+  { value: 'rose', label: 'Rose', color: '#a85c72' },
+  { value: 'lavender', label: 'Lavender', color: '#8874b6' },
+  { value: 'sky', label: 'Sky', color: '#4f8eaa' },
+  { value: 'citrus', label: 'Citrus', color: '#b78a3c' },
+  { value: 'berry', label: 'Berry', color: '#7f466e' },
+  { value: 'terracotta', label: 'Terracotta', color: '#a95f49' },
 ]
