@@ -460,7 +460,7 @@ input, select, textarea { color: var(--ink); }
 .input-prefix { display: flex; align-items: center; min-height: 43px; padding-left: 12px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 11px; transition: border-color .18s ease, box-shadow .18s ease; }
 .input-prefix:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .input-prefix > span { color: var(--muted); font-size: 13px; font-weight: 700; }
-.input-prefix input { min-height: 41px; padding-left: 8px; border: 0; box-shadow: none; }
+.input-prefix input { flex: 1; min-width: 0; width: auto; min-height: 41px; padding-left: 8px; border: 0; box-shadow: none; }
 .input-prefix input:focus { box-shadow: none; }
 .field-error { color: var(--negative); font-size: 10px; font-weight: 650; }
 .field-hint { color: var(--muted); font-size: 10px; font-weight: 500; }
@@ -530,6 +530,9 @@ input, select, textarea { color: var(--ink); }
 .movement-amount-cell { display: grid; min-width: 0; gap: 7px; color: var(--ink-soft); font-size: 12px; font-weight: 700; }
 .movement-amount-cell > span { display: flex; align-items: center; justify-content: space-between; gap: 5px; }
 .movement-amount-cell > span small { color: var(--muted); font-size: 9px; font-weight: 500; }
+.input-prefix-compact { padding-left: 8px; }
+.input-prefix-compact > span { font-size: 12px; }
+.input-prefix-compact input { padding-left: 5px; font-size: 12px; }
 .amount-presets { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
 .amount-preset { min-width: 0; min-height: 29px; padding: 0 3px; overflow: hidden; color: var(--muted); background: var(--glass-surface-soft); border: 1px solid var(--glass-border); border-radius: 999px; font-size: 10px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; transition: color .18s ease, background .18s ease, border-color .18s ease, transform .18s ease; }
 .amount-preset:hover, .amount-preset-active { color: var(--accent-dark); background: var(--accent-soft); border-color: var(--accent); transform: translateY(-1px); }

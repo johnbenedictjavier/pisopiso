@@ -408,10 +408,10 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
                    <span>Amount</span>
                    <div className="input-prefix"><span>₱</span><input aria-label="Amount" inputMode="decimal" placeholder="0.00" {...transactionForm.register('amount')} /></div>
                  </label>
-                 <label className="movement-amount-cell">
-                   <span>Coins back <small>Optional</small></span>
-                   <div className="input-prefix"><span>₱</span><input aria-label="Coins back" inputMode="decimal" placeholder="0.00" {...transactionForm.register('coinsBack')} /></div>
-                 </label>
+                  <label className="movement-amount-cell">
+                    <span>Coins back <small>Optional</small></span>
+                    <div className="input-prefix input-prefix-compact"><span>₱</span><input aria-label="Coins back" inputMode="decimal" placeholder="0.00" {...transactionForm.register('coinsBack')} /></div>
+                  </label>
                </div>
                <AmountPresets value={transactionAmount} onChange={(value) => transactionForm.setValue('amount', value, { shouldDirty: true, shouldValidate: true })} />
                <FieldError message={transactionForm.formState.errors.amount?.message} />
