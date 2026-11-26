@@ -149,21 +149,17 @@ export default function WalletsPage() {
     <div className="page-stack">
       <section className="page-intro-row"><div><h2 className="page-section-title">Wallets</h2><span className="section-subtitle">{activeWallets.length} active</span></div></section>
        <section className="wallet-summary-strip">
-         <div className="wallet-summary-main">
-           <span className="wallet-summary-icon" aria-hidden="true"><WalletCards size={21} /></span>
-           <div>
-             <span className="section-kicker">Total balance</span>
-             <strong><AnimatedNumber value={total} format={(amount) => formatCurrency(Math.round(amount))} /></strong>
-             <small className="wallet-summary-secondary">Available without credit: <AnimatedNumber value={availableBalanceCents} format={(amount) => formatCurrency(Math.round(amount))} /></small>
-           </div>
-         </div>
-         <div className="wallet-summary-meta">
-           <span className="wallet-summary-count"><WalletCards size={16} /> {activeWallets.length} active wallets</span>
-           <small>Every account in one view</small>
-         </div>
-         <span className="wallet-summary-orb wallet-summary-orb-one" aria-hidden="true" />
-         <span className="wallet-summary-orb wallet-summary-orb-two" aria-hidden="true" />
-       </section>
+          <div className="wallet-summary-main">
+            <div>
+              <span className="section-kicker">Total balance</span>
+              <strong><AnimatedNumber value={total} format={(amount) => formatCurrency(Math.round(amount))} /></strong>
+              <small className="wallet-summary-secondary">Available without credit: <AnimatedNumber value={availableBalanceCents} format={(amount) => formatCurrency(Math.round(amount))} /></small>
+            </div>
+          </div>
+          <div className="wallet-summary-meta">
+            <span className="wallet-summary-count"><WalletCards size={16} /> {activeWallets.length} active wallets</span>
+          </div>
+        </section>
       {activeWallets.length ? <section className="wallets-page-grid" aria-label="Reorderable wallets">{activeWallets.map((wallet) => <WalletCard key={wallet.id} wallet={wallet} featured reorderable pressing={pressingWalletId === wallet.id} dragging={draggingWalletId === wallet.id} dropTarget={dropTargetId === wallet.id} onReorderClick={() => suppressClickRef.current === wallet.id} onReorderPointerDown={(event) => beginWalletDrag(wallet.id, event)} onReorderPointerMove={moveWalletDrag} onReorderPointerUp={finishWalletDrag} onReorderPointerCancel={(event) => finishWalletDrag(event, true)} onReorderKeyDown={(event) => moveWalletWithKeyboard(wallet.id, event)} />)}<button className="add-wallet-card add-wallet-card-large" type="button" onClick={openAdd}><span><Plus size={20} /></span><strong>Add another wallet</strong></button></section> : <EmptyState title="Add your first wallet" description="Start with a bank account, cash, or any account you track." action={{ label: 'Add wallet', onClick: openAdd }} />}
       <span className="sr-only" role="status" aria-live="polite">{reorderStatus}</span>
        <WalletModal open={modalOpen} onClose={closeModal} onSuccess={(message) => { closeModal(); notify(message) }} />

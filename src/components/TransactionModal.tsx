@@ -85,45 +85,58 @@ function CapsulePicker({
   onChange: (value: string) => void
 }) {
   const selectedMore = !options.some((option) => option.value === value)
-  const showMoreSelect = moreOpen || selectedMore
-  const moreSelectValue = selectedMore ? value : moreOptions[0]?.value ?? ''
 
   return (
-    <div className="field capsule-picker">
-      <span>{label}</span>
-      <div className="capsule-options" role="radiogroup" aria-label={label}>
-        {options.map((option) => (
+    <>
+      <div className="field capsule-picker">
+        <span>{label}</span>
+        <div className="capsule-options" role="radiogroup" aria-label={label}>
+          {options.map((option) => (
+            <button
+              className={`capsule-option ${value === option.value ? 'capsule-option-active' : ''}`}
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={value === option.value}
+              onClick={() => onChange(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
           <button
-            className={`capsule-option ${value === option.value ? 'capsule-option-active' : ''}`}
-            key={option.value}
+            className={`capsule-option capsule-option-more ${selectedMore || moreOpen ? 'capsule-option-active' : ''}`}
             type="button"
-            role="radio"
-            aria-checked={value === option.value}
-            onClick={() => onChange(option.value)}
+            aria-expanded={moreOpen}
+            aria-haspopup="dialog"
+            onClick={onMoreToggle}
           >
-            {option.label}
+            More
           </button>
-        ))}
-        <button
-          className={`capsule-option capsule-option-more ${showMoreSelect ? 'capsule-option-active' : ''}`}
-          type="button"
-          aria-expanded={showMoreSelect}
-          onClick={onMoreToggle}
-        >
-          More
-        </button>
+        </div>
       </div>
-      {showMoreSelect && (
-        <select
-          className="capsule-more-select"
-          aria-label={`${label} more options`}
-          value={moreSelectValue}
-          onChange={(event) => onChange(event.target.value)}
-        >
-          {moreOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-        </select>
-      )}
-    </div>
+      <Modal
+        open={moreOpen}
+        title={`More ${label.toLowerCase()} options`}
+        description="Choose one of the available options for this movement."
+        onClose={onMoreToggle}
+        size="small"
+      >
+        <div className="more-category-options" role="radiogroup" aria-label={`More ${label} options`}>
+          {moreOptions.map((option) => (
+            <button
+              className={`more-category-option ${value === option.value ? 'more-category-option-active' : ''}`}
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={value === option.value}
+              onClick={() => onChange(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </Modal>
+    </>
   )
 }
 
@@ -211,11 +224,7 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
     setReceipt(null)
     setReceiptError(null)
     setTab(editingTransaction?.type ?? 'expense')
-    setMoreCategoryOpen(Boolean(
-      editingMovement?.categoryId
-      && !(editingMovement.type === 'income' ? incomeQuickCategories : expenseQuickCategories)
-        .some((option) => option.value === editingMovement.categoryId),
-    ))
+    setMoreCategoryOpen(false)
     transactionForm.reset({
       type: editingTransaction?.type === 'income' ? 'income' : 'expense',
       walletId: editingMovement?.walletId ?? defaultWalletId,
@@ -244,8 +253,7 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
       transactionForm.setValue('type', nextTab)
       const nextCategoryId = categoryIdFor(nextTab, transactionForm.getValues('categoryId'))
       transactionForm.setValue('categoryId', nextCategoryId)
-      setMoreCategoryOpen(!(nextTab === 'income' ? incomeQuickCategories : expenseQuickCategories)
-        .some((option) => option.value === nextCategoryId))
+      setMoreCategoryOpen(false)
     }
   }
 
@@ -334,7 +342,7 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
 
   function selectCategory(value: string): void {
     transactionForm.setValue('categoryId', value, { shouldDirty: true, shouldValidate: true })
-    setMoreCategoryOpen(!categoryOptions.some((option) => option.value === value))
+    setMoreCategoryOpen(false)
   }
 
   const movementTabs: MovementTab[] = editingTransfer ? ['transfer'] : editingTransaction ? ['expense', 'income'] : ['expense', 'income', 'transfer']
@@ -351,7 +359,7 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
 
       {tab === 'transfer' ? (
         <form className="form-stack" onSubmit={transferForm.handleSubmit(submitTransfer)}>
-            <div className="form-grid form-grid-two">
+            <div className="form-grid form-grid-two transfer-wallet-grid">
            <label className="field">
               <span>From wallet</span>
               <select {...transferForm.register('fromWalletId')}>
@@ -420,7 +428,7 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
                    <div className="input-prefix"><span>₱</span><input aria-label="Amount" inputMode="decimal" placeholder="0.00" {...transactionForm.register('amount')} /></div>
                  </label>
                   <label className="movement-amount-cell">
-                    <span>Coins back <small>Optional</small></span>
+                     <span>Coins back</span>
                     <div className="input-prefix input-prefix-compact"><span>₱</span><input aria-label="Coins back" inputMode="decimal" placeholder="0.00" {...transactionForm.register('coinsBack')} /></div>
                   </label>
                </div>
@@ -429,7 +437,7 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
                <FieldError message={transactionForm.formState.errors.coinsBack?.message} />
              </div>
            </div>
-            <div className="form-grid transaction-category-grid">
+             <div className="form-grid transaction-category-grid">
               <CapsulePicker
                 label={tab === 'expense' ? 'Category' : 'Income type'}
                 value={transactionCategoryId}

@@ -90,7 +90,7 @@ export default function SettingsPage() {
            <div className="about-card-header"><span className="about-card-icon"><Sparkles size={18} /></span><div><span className="section-kicker">About PisoPiso</span><strong>Every peso has a place.</strong></div></div>
            <p>Built for the small decisions that add up.</p>
            <div className="about-card-details">
-             <div className="about-card-detail"><span>Version</span><strong>0.1.1</strong></div>
+              <div className="about-card-detail"><span>Version</span><strong>0.1.2</strong><small>Updated November 26, 2026</small></div>
              <div className="about-card-detail"><span><Code2 size={13} /> Created by</span><strong>John Benedict M. Javier</strong><small>Web Software Developer</small></div>
            </div>
          </div></aside>
