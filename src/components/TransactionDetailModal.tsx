@@ -1,7 +1,7 @@
 import { CalendarDays, Download, FileImage, FolderOpen, Pencil, Trash2, WalletCards } from 'lucide-react'
 import Modal from './Modal'
 import { useFinance, transactionSign, transactionTypeLabel } from '../context/FinanceContext'
-import { formatDate } from '../lib/dates'
+import { formatDateTime } from '../lib/dates'
 import { formatCurrency, formatSignedCurrency } from '../lib/money'
 import type { Transaction } from '../types'
 import CategoryIcon from './CategoryIcon'
@@ -29,7 +29,7 @@ export default function TransactionDetailModal({ transaction, onClose, onEdit, o
           </div>
           <div className="transaction-detail-grid">
             <div><span>Wallet</span><strong><WalletCards size={14} /> {wallet?.name ?? 'Unknown wallet'}</strong></div>
-            <div><span>Date</span><strong><CalendarDays size={14} /> {formatDate(transaction.occurredAt)}</strong></div>
+            <div><span>Date & time</span><strong><CalendarDays size={14} /> {formatDateTime(transaction.occurredAt)}</strong></div>
             {category && <div><span>Category</span><strong><CategoryIcon name={category.icon} size={14} /> {category.name}</strong></div>}
             {relatedWallet && <div><span>{transaction.transferDirection === 'in' ? 'From wallet' : 'To wallet'}</span><strong>{relatedWallet.name}</strong></div>}
           </div>

@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import Modal from './Modal'
 import { useFinance } from '../context/FinanceContext'
 import { amountFromInput } from '../context/FinanceContext'
-import { toInputDate } from '../lib/dates'
+import { toInputDate, toInputTime } from '../lib/dates'
 import { blobToDataUrl, compressReceipt, validateReceipt } from '../lib/receipts'
 import { parseAmountToCents } from '../lib/money'
 import type { Transaction } from '../types'
@@ -187,6 +187,7 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
       merchant: editingMovement?.merchant ?? '',
       note: editingMovement?.note ?? '',
       occurredAt: editingMovement ? toInputDate(new Date(editingMovement.occurredAt)) : toInputDate(),
+      occurredTime: editingMovement ? toInputTime(new Date(editingMovement.occurredAt)) : toInputTime(),
     },
   })
   const transferForm = useForm<TransferFormValues>({
@@ -197,6 +198,7 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
       amount: editingTransfer ? (editingTransfer.amountCents / 100).toFixed(2) : '',
       note: editingTransfer?.note ?? '',
       occurredAt: editingTransfer ? toInputDate(new Date(editingTransfer.occurredAt)) : toInputDate(),
+      occurredTime: editingTransfer ? toInputTime(new Date(editingTransfer.occurredAt)) : toInputTime(),
     },
   })
   const transactionAmount = useWatch({ control: transactionForm.control, name: 'amount' })
@@ -223,6 +225,7 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
       merchant: editingMovement?.merchant ?? '',
       note: editingMovement?.note ?? '',
       occurredAt: editingMovement ? toInputDate(new Date(editingMovement.occurredAt)) : toInputDate(),
+      occurredTime: editingMovement ? toInputTime(new Date(editingMovement.occurredAt)) : toInputTime(),
     })
     transferForm.reset({
       fromWalletId: defaultTransferFromWalletId,
@@ -230,6 +233,7 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
       amount: editingTransfer ? (editingTransfer.amountCents / 100).toFixed(2) : '',
       note: editingTransfer?.note ?? '',
       occurredAt: editingTransfer ? toInputDate(new Date(editingTransfer.occurredAt)) : toInputDate(),
+      occurredTime: editingTransfer ? toInputTime(new Date(editingTransfer.occurredAt)) : toInputTime(),
     })
   }, [open, editingTransaction?.id, walletId])
 
@@ -278,11 +282,12 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
         walletId: values.walletId,
         type: values.type,
         amountCents: amountFromInput(values.amount),
-        categoryId: values.categoryId,
-        merchant: values.merchant,
-        note: values.note,
-        occurredAt: values.occurredAt,
-        coinsBackCents,
+         categoryId: values.categoryId,
+         merchant: values.merchant,
+         note: values.note,
+         occurredAt: values.occurredAt,
+         occurredTime: values.occurredTime,
+         coinsBackCents,
         receiptName: receipt?.name ?? editingTransaction?.receiptName ?? null,
         receiptUrl,
       }
@@ -309,10 +314,11 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
       const input = {
         fromWalletId: values.fromWalletId,
         toWalletId: values.toWalletId,
-        amountCents: cents,
-        note: values.note,
-        occurredAt: values.occurredAt,
-        receiptName: receipt?.name ?? transferReceiptName,
+         amountCents: cents,
+         note: values.note,
+         occurredAt: values.occurredAt,
+         occurredTime: values.occurredTime,
+         receiptName: receipt?.name ?? transferReceiptName,
         receiptUrl,
       }
       if (editingTransfer?.transferGroupId) {
@@ -345,7 +351,7 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
 
       {tab === 'transfer' ? (
         <form className="form-stack" onSubmit={transferForm.handleSubmit(submitTransfer)}>
-          <div className="form-grid form-grid-two">
+            <div className="form-grid form-grid-two">
            <label className="field">
               <span>From wallet</span>
               <select {...transferForm.register('fromWalletId')}>
@@ -361,19 +367,24 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
               <FieldError message={transferForm.formState.errors.toWalletId?.message} />
             </label>
           </div>
-           <div className="form-grid form-grid-two">
-            <div className="field">
-                <span>Amount</span>
-                <div className="input-prefix"><span>₱</span><input aria-label="Amount" inputMode="decimal" placeholder="0.00" {...transferForm.register('amount')} /></div>
-                <AmountPresets value={transferAmount} onChange={(value) => transferForm.setValue('amount', value, { shouldDirty: true, shouldValidate: true })} />
-                <FieldError message={transferForm.formState.errors.amount?.message} />
-              </div>
-            <label className="field">
-              <span>Date</span>
-              <input type="date" {...transferForm.register('occurredAt')} />
-              <FieldError message={transferForm.formState.errors.occurredAt?.message} />
-            </label>
-          </div>
+            <div className="form-grid transaction-entry-grid">
+             <div className="field">
+                 <span>Amount</span>
+                 <div className="input-prefix"><span>₱</span><input aria-label="Amount" inputMode="decimal" placeholder="0.00" {...transferForm.register('amount')} /></div>
+                 <AmountPresets value={transferAmount} onChange={(value) => transferForm.setValue('amount', value, { shouldDirty: true, shouldValidate: true })} />
+                 <FieldError message={transferForm.formState.errors.amount?.message} />
+               </div>
+             <label className="field">
+               <span>Date</span>
+               <input type="date" {...transferForm.register('occurredAt')} />
+               <FieldError message={transferForm.formState.errors.occurredAt?.message} />
+             </label>
+             <label className="field">
+               <span>Time</span>
+               <input type="time" {...transferForm.register('occurredTime')} />
+               <FieldError message={transferForm.formState.errors.occurredTime?.message} />
+             </label>
+           </div>
           <label className="field">
             <span>Note <small>Optional</small></span>
             <textarea rows={3} placeholder="What was this movement for?" {...transferForm.register('note')} />
@@ -418,22 +429,27 @@ export default function TransactionModal({ open, onClose, onSuccess, transaction
                <FieldError message={transactionForm.formState.errors.coinsBack?.message} />
              </div>
            </div>
-           <div className="form-grid form-grid-two">
-             <CapsulePicker
-               label={tab === 'expense' ? 'Category' : 'Income type'}
-               value={transactionCategoryId}
+            <div className="form-grid transaction-category-grid">
+              <CapsulePicker
+                label={tab === 'expense' ? 'Category' : 'Income type'}
+                value={transactionCategoryId}
                options={categoryOptions}
                moreOptions={moreCategoryOptions}
                moreOpen={moreCategoryOpen}
                onMoreToggle={() => setMoreCategoryOpen((current) => !current)}
                onChange={selectCategory}
              />
-              <label className="field">
-                <span>Date</span>
-                <input aria-label="Date" type="date" {...transactionForm.register('occurredAt')} />
-                <FieldError message={transactionForm.formState.errors.occurredAt?.message} />
-              </label>
-           </div>
+               <label className="field">
+                 <span>Date</span>
+                 <input aria-label="Date" type="date" {...transactionForm.register('occurredAt')} />
+                 <FieldError message={transactionForm.formState.errors.occurredAt?.message} />
+               </label>
+               <label className="field">
+                 <span>Time</span>
+                 <input aria-label="Time" type="time" {...transactionForm.register('occurredTime')} />
+                 <FieldError message={transactionForm.formState.errors.occurredTime?.message} />
+               </label>
+            </div>
           <label className="field">
             <span>{tab === 'expense' ? 'Merchant' : 'Source'}</span>
             <input placeholder={tab === 'expense' ? 'e.g. Coffee shop' : 'e.g. Salary'} autoComplete="organization" {...transactionForm.register('merchant')} />

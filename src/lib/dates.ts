@@ -6,6 +6,16 @@ export function toInputDate(value = new Date()): string {
   return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10)
 }
 
+export function toInputTime(value = new Date()): string {
+  const date = new Date(value)
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+export function combineDateAndTime(date: string, time = '12:00'): string {
+  const normalizedTime = /^\d{2}:\d{2}$/.test(time) ? time : '12:00'
+  return new Date(`${date}T${normalizedTime}:00`).toISOString()
+}
+
 export function localDateKey(value: string | Date): string {
   const date = typeof value === 'string' ? new Date(value) : value
   const year = date.getFullYear()
@@ -19,6 +29,13 @@ export function formatDate(value: string): string {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
+  }).format(new Date(value))
+}
+
+export function formatDateTime(value: string): string {
+  return new Intl.DateTimeFormat('en-PH', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
   }).format(new Date(value))
 }
 

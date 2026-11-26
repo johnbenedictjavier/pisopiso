@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compareTransactionsByOccurredAtDesc, formatDate, formatShortDate } from './dates'
+import { combineDateAndTime, compareTransactionsByOccurredAtDesc, formatDate, formatDateTime, formatShortDate } from './dates'
 import type { Transaction } from '../types'
 
 function movement(id: string, occurredAt: string, createdAt: string): Transaction {
@@ -27,5 +27,13 @@ describe('transaction date ordering', () => {
 
     expect(formatShortDate(occurredAt)).toBe('Nov 3')
     expect(formatDate(occurredAt)).toBe('Nov 3, 2026')
+    expect(formatDateTime(occurredAt)).toMatch(/\d{1,2}:\d{2}/)
+  })
+
+  it('combines a local date and time into the stored timestamp', () => {
+    const occurredAt = combineDateAndTime('2026-11-03', '08:45')
+
+    expect(new Date(occurredAt).getHours()).toBe(8)
+    expect(new Date(occurredAt).getMinutes()).toBe(45)
   })
 })

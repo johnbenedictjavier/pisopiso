@@ -6,6 +6,7 @@ import { formatCurrency, formatSignedCurrency } from '../lib/money'
 import { downloadDashboardImage } from '../lib/dashboardImage'
 import { useShell } from '../layout/AppShell'
 import AnimatedNumber from '../components/AnimatedNumber'
+import CategoryIcon from '../components/CategoryIcon'
 
 const chartColors = ['#5f8068', '#d69570', '#687cb0', '#b47d9f', '#c09649', '#71918b', '#9a7967']
 type DashboardPeriod = 'day' | 'week' | 'month' | '90' | 'all'
@@ -63,10 +64,12 @@ export default function DashboardPage() {
     const grouped = new Map<string, number>()
     expenses.forEach((transaction) => grouped.set(transaction.categoryId ?? 'other-expense', (grouped.get(transaction.categoryId ?? 'other-expense') ?? 0) + transaction.amountCents))
     return [...grouped.entries()].sort(([, left], [, right]) => right - left).map(([categoryId, amount], index) => ({
-      name: state.categories.find((category) => category.id === categoryId)?.name ?? 'Other expense',
-      amount,
-      percentage: expenseTotal ? Math.round((amount / expenseTotal) * 100) : 0,
-      color: chartColors[index % chartColors.length],
+       categoryId,
+       name: state.categories.find((category) => category.id === categoryId)?.name ?? 'Other expense',
+       icon: state.categories.find((category) => category.id === categoryId)?.icon ?? 'more-horizontal',
+       amount,
+       percentage: expenseTotal ? Math.round((amount / expenseTotal) * 100) : 0,
+       color: chartColors[index % chartColors.length],
     }))
   }, [expenseTotal, expenses, state.categories])
   const monthlyData = useMemo(() => {
@@ -108,8 +111,40 @@ export default function DashboardPage() {
   return (
     <div className="page-stack">
        <section className="page-intro-row"><div><h2 className="page-section-title">Your financial dashboard</h2></div><div className="dashboard-actions"><div className="period-picker dashboard-period-picker">{periodOptions.map((item) => <button key={item.value} className={period === item.value ? 'period-active' : ''} type="button" onClick={() => setPeriod(item.value)}>{item.label}</button>)}</div><button className="icon-button dashboard-download" type="button" aria-label="Download dashboard image" title="Download dashboard image" onClick={() => { void handleDownload() }}><Download size={17} /></button></div></section>
-          <section className="metric-grid dashboard-metrics"><article className="dashboard-total-card"><span className="metric-icon metric-icon-sage"><TrendingUp size={18} /></span><div><span>Income received</span><strong><AnimatedNumber value={incomeTotal} format={(amount) => formatCurrency(Math.round(amount))} /></strong><small>{income.length} income movements</small></div></article><article className="dashboard-total-card"><span className="metric-icon metric-icon-amber"><TrendingDown size={18} /></span><div><span>Expenses paid</span><strong><AnimatedNumber value={expenseTotal} format={(amount) => formatCurrency(Math.round(amount))} /></strong><small>{expenses.length} expense movements</small></div></article><article className={`dashboard-total-card dashboard-savings-card ${savingsRate !== null && savingsRate < 0 ? 'dashboard-savings-negative' : 'dashboard-savings-positive'}`}><span className="metric-icon">{savingsRate !== null && savingsRate < 0 ? <TrendingDown size={18} /> : <TrendingUp size={18} />}</span><div><span>Savings rate</span><strong><AnimatedNumber value={savingsRate ?? 0} format={(amount) => savingsRate === null ? '—' : `${Math.round(amount)}%`} /></strong><small>{netTotal >= 0 ? `Net saved ${formatCurrency(netTotal)}` : `Net deficit ${formatCurrency(Math.abs(netTotal))}`}</small></div></article></section>
-          <section className="dashboard-summary" aria-label="Dashboard summary"><div><span>Net movement</span><strong className={netTotal >= 0 ? 'amount-positive' : 'amount-negative'}><AnimatedNumber value={netTotal} format={(amount) => formatSignedCurrency(Math.round(amount))} /></strong></div><div><span>Tracked movements</span><strong>{filteredTransactions.length}</strong><small>{periodLabel}</small></div><div><span>Largest category</span><strong>{categoryData[0]?.name ?? '—'}</strong><small>{categoryData[0] ? `${categoryData[0].percentage}% of expenses` : 'No expenses yet'}</small></div></section>
+           <section className="dashboard-metric-stack" aria-label="Dashboard totals">
+             <div className="dashboard-income-row">
+               <article className="dashboard-total-card dashboard-income-card">
+                 <span className="metric-icon metric-icon-sage"><TrendingUp size={18} /></span>
+                 <div><span>In</span><strong><AnimatedNumber value={incomeTotal} format={(amount) => formatCurrency(Math.round(amount))} /></strong><small>{income.length} entries</small></div>
+               </article>
+               <article className="dashboard-total-card dashboard-expense-card">
+                 <span className="metric-icon metric-icon-amber"><TrendingDown size={18} /></span>
+                 <div><span>Out</span><strong><AnimatedNumber value={expenseTotal} format={(amount) => formatCurrency(Math.round(amount))} /></strong><small>{expenses.length} entries</small></div>
+               </article>
+             </div>
+             <section className="dashboard-summary" aria-label="Dashboard summary">
+               <div className="dashboard-summary-net">
+                 <span>Net</span>
+                 <strong className={netTotal >= 0 ? 'amount-positive' : 'amount-negative'}><AnimatedNumber value={netTotal} format={(amount) => formatSignedCurrency(Math.round(amount))} /></strong>
+                 <small className={`dashboard-rate ${savingsRate !== null && savingsRate < 0 ? 'dashboard-rate-negative' : 'dashboard-rate-positive'}`}>
+                   {savingsRate !== null && savingsRate < 0 ? <TrendingDown size={13} /> : <TrendingUp size={13} />}
+                   {savingsRate === null ? 'No income yet' : `${savingsRate > 0 ? '+' : ''}${savingsRate}% net rate`}
+                 </small>
+               </div>
+               <div>
+                 <span>Moves</span>
+                 <strong>{filteredTransactions.length}</strong>
+                 <small>{periodLabel}</small>
+               </div>
+               <div className="dashboard-summary-category">
+                 <span>Top category</span>
+                 <strong>
+                   {categoryData[0] ? <span className="dashboard-category-icon" role="img" aria-label={`Top category: ${categoryData[0].name}`} title={categoryData[0].name}><CategoryIcon name={categoryData[0].icon} size={21} /></span> : '—'}
+                 </strong>
+                 <small>{categoryData[0] ? `${categoryData[0].percentage}% of spend` : 'No spending'}</small>
+               </div>
+             </section>
+           </section>
         <section className="dashboard-grid">
            <article className="panel dashboard-card dashboard-card-large"><div className="card-heading-row"><div><span className="section-kicker">Six-month view</span><h2>Income vs. expenses</h2><p className="dashboard-card-description">Compare what came in with what went out over time.</p></div><span className="chart-legend"><i className="dot dot-income" /> Income <i className="dot dot-expenses" /> Expenses</span></div><div className="dashboard-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={monthlyData} margin={{ top: 12, right: 4, left: -25, bottom: 0 }}><CartesianGrid vertical={false} stroke="var(--line)" /><XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--muted)', fontSize: 11 }} /><YAxis axisLine={false} tickLine={false} tick={false} /><Tooltip cursor={false} content={<DashboardTooltip />} /><Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ display: 'none' }} /><Bar dataKey="Income" fill="#5f8068" radius={[5, 5, 0, 0]} barSize={13} activeBar={false} /><Bar dataKey="Expenses" fill="#d69570" radius={[5, 5, 0, 0]} barSize={13} activeBar={false} /></BarChart></ResponsiveContainer></div></article>
             <article className="panel dashboard-card"><div className="card-heading-row"><div><span className="section-kicker">Spending</span><h2>Where it went</h2><p className="dashboard-card-description">Your biggest expense categories in this period.</p></div><PieChartIcon size={19} className="muted-icon" /></div>{categoryData.length ? <><div className="donut-wrap"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={categoryData} dataKey="amount" nameKey="name" innerRadius="64%" outerRadius="88%" paddingAngle={3} stroke="none" activeShape={false}>{categoryData.map((item) => <Cell key={item.name} fill={item.color} />)}</Pie><Tooltip cursor={false} formatter={(value) => formatCurrency(Number(value ?? 0))} /></PieChart></ResponsiveContainer><div className="donut-center"><strong><AnimatedNumber value={expenseTotal} format={(amount) => formatCurrency(Math.round(amount))} /></strong><span>Total expenses</span></div></div><div className="category-legend">{categoryData.slice(0, 5).map((item) => <div key={item.name}><span><i style={{ backgroundColor: item.color }} />{item.name}</span><strong>{formatCurrency(item.amount)} <small>{item.percentage}%</small></strong></div>)}</div></> : <p className="muted-copy">Add expenses to see your spending mix.</p>}</article>

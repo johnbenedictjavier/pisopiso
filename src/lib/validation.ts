@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 const amount = z.string().trim().regex(/^\d+(?:\.\d{0,2})?$/, 'Enter an amount with up to 2 decimals.')
 const optionalAmount = z.string().trim().refine((value) => value === '' || /^\d+(?:\.\d{0,2})?$/.test(value), 'Enter an amount with up to 2 decimals.')
+const time = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, 'Choose a valid time.')
 
 export const transactionFormSchema = z.object({
   type: z.enum(['expense', 'income']),
@@ -11,6 +12,7 @@ export const transactionFormSchema = z.object({
   merchant: z.string().trim().min(1, 'Add a merchant or source.').max(80, 'Keep this under 80 characters.'),
   note: z.string().trim().max(240, 'Keep your note under 240 characters.'),
   occurredAt: z.string().min(1, 'Choose a date.'),
+  occurredTime: time,
   coinsBack: optionalAmount,
 })
 
@@ -21,11 +23,20 @@ export const transferFormSchema = z
     amount,
     note: z.string().trim().max(240, 'Keep your note under 240 characters.'),
     occurredAt: z.string().min(1, 'Choose a date.'),
+    occurredTime: time,
   })
   .refine((value) => value.fromWalletId !== value.toWalletId, {
     path: ['toWalletId'],
     message: 'Choose a different destination wallet.',
   })
+
+export const jarExpenseFormSchema = z.object({
+  amount,
+  merchant: z.string().trim().min(1, 'Add what you spent the coins on.').max(80, 'Keep this under 80 characters.'),
+  note: z.string().trim().max(240, 'Keep your note under 240 characters.'),
+  occurredAt: z.string().min(1, 'Choose a date.'),
+  occurredTime: time,
+})
 
 export const walletFormSchema = z.object({
   name: z.string().trim().min(1, 'Give this wallet a name.').max(60, 'Keep this under 60 characters.'),
@@ -38,4 +49,5 @@ export const walletFormSchema = z.object({
 
 export type TransactionFormValues = z.infer<typeof transactionFormSchema>
 export type TransferFormValues = z.infer<typeof transferFormSchema>
+export type JarExpenseFormValues = z.infer<typeof jarExpenseFormSchema>
 export type WalletFormValues = z.infer<typeof walletFormSchema>

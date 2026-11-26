@@ -166,7 +166,7 @@ async function openUnlockedApp(page: import('@playwright/test').Page): Promise<v
 test('shows the account balances on the overview', async ({ page }) => {
   await openUnlockedApp(page)
 
-  await expect(page.getByRole('heading', { name: 'Overview' }).first()).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Test User/ })).toBeVisible()
   await expect(page.getByText('Total balance')).toBeVisible()
   await expect(page.getByRole('link', { name: /BPI Everyday/ })).toBeVisible()
   await expect(page.getByRole('link', { name: 'View history' })).toBeVisible()
@@ -207,12 +207,19 @@ test('can record an expense through the shared movement flow', async ({ page }) 
   await dialog.getByLabel('Amount').fill('120.50')
   await dialog.getByLabel('Merchant').fill('Neighborhood bakery')
   await dialog.getByLabel('Date').fill('2025-12-31')
+  await dialog.getByLabel('Time').fill('08:45')
   await dialog.getByRole('button', { name: 'Save expense' }).click()
 
   await expect(page.getByRole('status')).toContainText('Expense added.')
   expect(await page.evaluate(() => ({ body: document.body.style.overflow, document: document.documentElement.style.overflow }))).toEqual({ body: '', document: '' })
   await page.goto('/transactions')
-  await expect(page.locator('.transaction-list-full .transaction-row').first()).toContainText('Neighborhood bakery')
+  const bakeryRow = page.locator('.transaction-list-full .transaction-row').filter({ hasText: 'Neighborhood bakery' }).first()
+  await expect(bakeryRow).toBeVisible()
+  await bakeryRow.click()
+  const detailDialog = page.getByRole('dialog', { name: /Neighborhood bakery/ })
+  await expect(detailDialog.getByText('Date & time')).toBeVisible()
+  await expect(detailDialog).toContainText('8:45')
+  await detailDialog.getByRole('button', { name: 'Close dialog' }).click()
 })
 
 test('adds coins back to the private jar without adding a jar row to the ledger', async ({ page }) => {
@@ -224,6 +231,7 @@ test('adds coins back to the private jar without adding a jar row to the ledger'
   await dialog.getByLabel('Amount').fill('120')
   await dialog.getByLabel(/Coins back/).fill('20')
   await dialog.getByLabel('Merchant').fill('Jar bakery')
+  await dialog.getByLabel('Time').fill('09:10')
   await dialog.getByRole('button', { name: 'Save expense' }).click()
   await expect(page.getByRole('status')).toContainText('Expense added.')
 
@@ -239,6 +247,54 @@ test('adds coins back to the private jar without adding a jar row to the ledger'
   await page.goto('/transactions')
   await expect(page.locator('.transaction-list-full .transaction-row').filter({ hasText: 'Jar bakery' })).toHaveCount(1)
   await expect(page.locator('.transaction-list-full .transaction-row').filter({ hasText: 'Coin jar history' })).toHaveCount(0)
+})
+
+test('adds, edits, and deletes a coin jar expense without changing the ledger', async ({ page }) => {
+  await openUnlockedApp(page)
+  await page.goto('/transactions')
+  await page.getByRole('button', { name: 'Add movement' }).first().click()
+
+  const movementDialog = page.getByRole('dialog', { name: /Add a movement/ })
+  await movementDialog.getByLabel('Amount').fill('120')
+  await movementDialog.getByLabel(/Coins back/).fill('20')
+  await movementDialog.getByLabel('Merchant').fill('Jar refill')
+  await movementDialog.getByRole('button', { name: 'Save expense' }).click()
+  await expect(page.getByRole('status')).toContainText('Expense added.')
+
+  await page.goto('/overview')
+  await page.getByRole('button', { name: /Coin jar with ₱20\.00 saved/ }).click()
+  const jarDialog = page.getByRole('dialog', { name: /Coin jar history/ })
+  await jarDialog.getByRole('button', { name: 'Add expense' }).click()
+
+  const expenseDialog = page.getByRole('dialog', { name: /Add jar expense/ })
+  await expenseDialog.getByLabel('Amount').fill('5')
+  await expenseDialog.getByLabel('What did you spend it on?').fill('Jar snack')
+  await expenseDialog.getByLabel('Time').fill('10:15')
+  await expenseDialog.getByRole('button', { name: 'Save jar expense' }).click()
+  await expect(page.getByRole('status')).toContainText('Jar expense added.')
+  await expect(jarDialog.getByText('Jar snack')).toBeVisible()
+  await expect(jarDialog.getByText('-₱5.00')).toBeVisible()
+  await expect(page.getByRole('button', { name: /Coin jar with ₱15\.00 saved/ })).toBeVisible()
+
+  await jarDialog.getByRole('button', { name: 'Edit jar expense Jar snack' }).click()
+  const editExpenseDialog = page.getByRole('dialog', { name: /Edit jar expense/ })
+  await editExpenseDialog.getByLabel('Amount').fill('7')
+  await editExpenseDialog.getByLabel('What did you spend it on?').fill('Jar treat')
+  await editExpenseDialog.getByRole('button', { name: 'Update jar expense' }).click()
+  await expect(page.getByRole('status')).toContainText('Jar expense updated.')
+  await expect(jarDialog.getByText('Jar treat')).toBeVisible()
+  await expect(jarDialog.getByText('-₱7.00')).toBeVisible()
+
+  await jarDialog.getByRole('button', { name: 'Delete jar expense Jar treat' }).click()
+  const confirmDialog = page.getByRole('dialog', { name: /Remove jar expense/ })
+  await confirmDialog.getByRole('button', { name: 'Remove' }).click()
+  await expect(page.getByRole('status')).toContainText('Jar expense removed.')
+  await expect(jarDialog.getByText('Jar treat')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Coin jar with ₱20\.00 saved/ })).toBeVisible()
+
+  await page.goto('/transactions')
+  await expect(page.locator('.transaction-list-full .transaction-row').filter({ hasText: 'Jar refill' })).toHaveCount(1)
+  await expect(page.locator('.transaction-list-full .transaction-row').filter({ hasText: 'Jar treat' })).toHaveCount(0)
 })
 
 test('shows a useful empty state when filters have no results', async ({ page }) => {
@@ -277,11 +333,12 @@ test('edits income, expense, and linked transfer movements', async ({ page }) =>
   const editMovement = async (filter: 'Income' | 'Expense' | 'Transfer', rowText: string, amount: string, saveLabel: string) => {
     await page.getByRole('button', { name: filter, exact: true }).click()
     await page.locator('.transaction-row').filter({ hasText: rowText }).first().click()
-    const detailDialog = page.getByRole('dialog')
-    await detailDialog.getByRole('button', { name: 'Edit movement' }).click()
-    const editDialog = page.getByRole('dialog')
-    await editDialog.getByLabel('Amount').fill(amount)
-    await editDialog.getByRole('button', { name: saveLabel }).click()
+     const detailDialog = page.getByRole('dialog')
+     await detailDialog.getByRole('button', { name: 'Edit movement' }).click()
+     const editDialog = page.getByRole('dialog')
+     await editDialog.getByLabel('Amount').fill(amount)
+     await editDialog.getByLabel('Time').fill('10:20')
+     await editDialog.getByRole('button', { name: saveLabel }).click()
     await expect(page.getByRole('status')).toBeVisible()
   }
 
@@ -459,6 +516,8 @@ test('keeps the primary flow usable on a narrow viewport', async ({ page }) => {
   await page.getByRole('button', { name: 'Add transaction' }).first().click()
   const quickDialog = page.getByRole('dialog', { name: /Add a movement/ })
   await expect(quickDialog).toBeVisible()
+  const quickModalSize = await quickDialog.evaluate((element) => ({ clientWidth: element.clientWidth, scrollWidth: element.scrollWidth }))
+  expect(quickModalSize.scrollWidth).toBeLessThanOrEqual(quickModalSize.clientWidth)
   expect(await page.locator('.modal-backdrop').evaluate((element) => element.parentElement === document.body)).toBe(true)
   expect(await page.evaluate(() => ({ body: document.body.style.overflow, document: document.documentElement.style.overflow }))).toEqual({ body: 'hidden', document: 'hidden' })
   await quickDialog.getByRole('button', { name: 'Close dialog' }).click()
@@ -469,7 +528,9 @@ test('keeps the primary flow usable on a narrow viewport', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Wallets' }).first()).toBeVisible()
   expect(await page.locator('.wallets-page-grid').evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(2)
   await page.goto('/dashboard')
-  expect(await page.locator('.dashboard-metrics').evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(3)
+  expect(await page.locator('.dashboard-income-row').evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(1)
+  await page.getByRole('button', { name: 'All time' }).click()
+  await expect(page.locator('.dashboard-summary-category .dashboard-category-icon')).toBeVisible()
   await page.locator('.dashboard-chart').click({ position: { x: 24, y: 24 } })
   expect(await page.locator('.dashboard-chart .recharts-surface[role="application"]').evaluate((element) => getComputedStyle(element).outlineStyle)).toBe('none')
   expect(await page.locator('.dashboard-chart .recharts-surface[role="application"]').evaluate((element) => getComputedStyle(element).borderStyle)).toBe('none')
@@ -513,7 +574,7 @@ test('keeps the active account open after a refresh', async ({ page }) => {
   await page.reload()
 
   await expect(page).toHaveURL(/\/dashboard$/)
-  await expect(page.getByRole('heading', { name: 'Dashboard' }).first()).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Test User/ })).toBeVisible()
   await expect(page).not.toHaveURL(/\/login$/)
 })
 

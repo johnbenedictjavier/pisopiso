@@ -7,13 +7,13 @@ import { formatCurrency } from '../lib/money'
 export default function CoinJar() {
   const { jarBalanceCents, jarTransactions } = useFinance()
   const [historyOpen, setHistoryOpen] = useState(false)
-  const visibleCoins = jarTransactions.slice(0, 9)
-  const fillLevel = jarTransactions.length ? Math.min(78, 19 + jarTransactions.length * 7) : 0
+  const visibleCoins = jarTransactions.filter((transaction) => transaction.kind !== 'expense').slice(0, 9)
+  const fillLevel = jarBalanceCents > 0 ? Math.min(78, 19 + Math.max(1, visibleCoins.length) * 7) : 0
 
   return (
     <>
       <button
-        className={`coin-jar-panel ${jarTransactions.length ? 'coin-jar-panel-filled' : ''}`}
+        className={`coin-jar-panel ${jarBalanceCents > 0 ? 'coin-jar-panel-filled' : ''}`}
         type="button"
         onClick={() => setHistoryOpen(true)}
         aria-label={`Coin jar with ${formatCurrency(jarBalanceCents)} saved. Open coin jar history.`}

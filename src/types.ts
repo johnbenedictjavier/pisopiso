@@ -15,6 +15,8 @@ export type TransactionType = 'expense' | 'income' | 'transfer'
 
 export type TransferDirection = 'out' | 'in'
 
+export type JarTransactionKind = 'contribution' | 'expense'
+
 export type WalletCardTheme =
   | 'emerald'
   | 'ocean'
@@ -90,9 +92,12 @@ export interface Transaction {
 export interface JarTransaction {
   id: string
   userId: string
-  sourceTransactionId: string
+  sourceTransactionId: string | null
   sourceType: Exclude<TransactionType, 'transfer'>
+  kind: JarTransactionKind
   amountCents: number
+  merchant: string
+  note: string
   occurredAt: string
   createdAt: string
   deletedAt: string | null
@@ -114,6 +119,7 @@ export interface TransactionMovementInput {
   merchant: string
   note: string
   occurredAt: string
+  occurredTime: string
   coinsBackCents?: number
   receiptName?: string | null
   receiptUrl?: string | null
@@ -128,11 +134,23 @@ export interface AddTransferInput {
   amountCents: number
   note: string
   occurredAt: string
+  occurredTime: string
   receiptName?: string | null
   receiptUrl?: string | null
 }
 
 export type UpdateTransferInput = AddTransferInput
+
+export interface JarExpenseInput {
+  amountCents: number
+  merchant: string
+  note: string
+  occurredAt: string
+  occurredTime: string
+}
+
+export type AddJarExpenseInput = JarExpenseInput
+export type UpdateJarExpenseInput = JarExpenseInput
 
 export interface AddWalletInput {
   name: string

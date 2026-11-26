@@ -48,8 +48,12 @@ export default function TransactionsPage() {
 
   function confirmDelete(): void {
     if (!deleteTarget) return
-    removeTransaction(deleteTarget.id)
-    notify('Movement removed.')
+    try {
+      removeTransaction(deleteTarget.id)
+      notify('Movement removed.')
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'Could not remove this movement.')
+    }
     setDeleteTarget(null)
   }
 

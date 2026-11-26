@@ -54,11 +54,15 @@ function migrateAppState(value: Partial<AppState>, userId: string, email: string
     (transaction) => transaction.userId !== DEMO_USER_ID && walletIds.has(transaction.walletId),
   )
   const transactionIds = new Set(transactions.map((transaction) => transaction.id))
-  const jarTransactions = (value.jarTransactions ?? []).filter(
-    (transaction) => transaction.userId !== DEMO_USER_ID
+  const jarTransactions = (value.jarTransactions ?? []).filter((transaction) => {
+    const kind = transaction.kind ?? (transaction.sourceTransactionId ? 'contribution' : 'expense')
+    const hasSourceTransaction = transaction.sourceTransactionId !== null
+      && transaction.sourceTransactionId !== undefined
       && transactionIds.has(transaction.sourceTransactionId)
-      && transaction.amountCents > 0,
-  )
+    return transaction.userId !== DEMO_USER_ID
+      && transaction.amountCents > 0
+      && (kind === 'expense' || hasSourceTransaction)
+  })
 
   return {
     ...emptyState,
@@ -93,6 +97,11 @@ function migrateAppState(value: Partial<AppState>, userId: string, email: string
     jarTransactions: jarTransactions.map((transaction: JarTransaction) => ({
       ...transaction,
       userId,
+      sourceTransactionId: transaction.sourceTransactionId ?? null,
+      sourceType: transaction.sourceType ?? 'expense',
+      kind: transaction.kind ?? (transaction.sourceTransactionId ? 'contribution' : 'expense'),
+      merchant: transaction.merchant ?? '',
+      note: transaction.note ?? '',
       deletedAt: transaction.deletedAt ?? null,
     })),
   }

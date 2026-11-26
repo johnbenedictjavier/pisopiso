@@ -35,6 +35,12 @@ const pageTitles: Record<string, { title: string; eyebrow: string }> = {
   '/settings': { title: 'Settings', eyebrow: 'PisoPiso' },
 }
 
+function greetingForHour(hour: number): string {
+  if (hour < 12) return 'Good morning'
+  if (hour < 18) return 'Good afternoon'
+  return 'Good evening'
+}
+
 export default function AppShell() {
   const location = useLocation()
   const { state } = useFinance()
@@ -42,9 +48,16 @@ export default function AppShell() {
   const [quickAddWalletId, setQuickAddWalletId] = useState<string | undefined>()
   const detailWalletId = location.pathname.match(/^\/wallets\/([^/]+)/)?.[1]
   const [toast, setToast] = useState<string | null>(null)
+  const [currentHour, setCurrentHour] = useState(() => new Date().getHours())
   const page = location.pathname.startsWith('/wallets/')
     ? { title: 'Wallet details', eyebrow: 'PisoPiso' }
     : pageTitles[location.pathname] ?? pageTitles['/overview']
+
+  useEffect(() => {
+    const updateHour = () => setCurrentHour(new Date().getHours())
+    const interval = window.setInterval(updateHour, 60_000)
+    return () => window.clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     if (!toast) return
@@ -91,14 +104,14 @@ export default function AppShell() {
 
       <div className="main-frame">
         <header className="topbar">
-          <div className="mobile-brand"><BrandMark compact /></div>
+          <div className="topbar-profile"><ProfileAvatar profile={state.profile} size="small" /></div>
           <div className="topbar-heading">
             <span>{page.eyebrow}</span>
-            <h1>{page.title}</h1>
+            <h1>{greetingForHour(currentHour)}, {state.profile.displayName || 'there'}</h1>
           </div>
           <div className="topbar-actions">
-            <Link to="/settings" className="avatar-link" aria-label="Open settings">
-              <ProfileAvatar profile={state.profile} size="small" />
+            <Link to="/settings" className="icon-button topbar-settings" aria-label="Open settings" title="Settings">
+              <Settings size={19} />
             </Link>
           </div>
         </header>
